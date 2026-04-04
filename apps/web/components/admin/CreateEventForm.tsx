@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { BannerUpload } from "./BannerUpload";
 
 const CATEGORIES = [
   { value: "worship", label: "Worship" },
@@ -65,6 +66,7 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
   const [capacity, setCapacity] = useState("");
   const [rsvpRequired, setRsvpRequired] = useState(true);
   const [isPublic, setIsPublic] = useState(true);
+  const [bannerUrl, setBannerUrl] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,6 +91,7 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
             capacity: capacity ? parseInt(capacity, 10) : undefined,
             rsvpRequired,
             isPublic,
+            bannerUrl: bannerUrl || undefined,
           },
         }),
       });
@@ -123,6 +126,14 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
           {errorMsg}
         </div>
       )}
+
+      {/* Banner image */}
+      <Field label="Banner image" hint="Recommended: 1600×900px, JPG or PNG">
+        <BannerUpload
+          {...(bannerUrl ? { currentUrl: bannerUrl } : {})}
+          onUploaded={(url) => setBannerUrl(url)}
+        />
+      </Field>
 
       {/* Title */}
       <Field label="Event title" required>

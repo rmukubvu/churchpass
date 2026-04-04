@@ -138,6 +138,7 @@ export const eventsRouter = router({
         capacity: z.number().int().positive().optional(),
         rsvpRequired: z.boolean().default(true),
         isPublic: z.boolean().default(true),
+        bannerUrl: z.string().url().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
