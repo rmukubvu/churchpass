@@ -64,10 +64,17 @@ export function HotelCard({ hotel }: { hotel: NearbyHotel }) {
 
       {/* Info — fills remaining height, flexes to push button to bottom */}
       <div className="flex flex-col flex-1 p-4 gap-2 min-h-0">
-        {/* Name — 2-line clamp so long names don't push layout */}
-        <p className="text-[15px] font-bold text-white leading-snug line-clamp-2 group-hover:text-indigo-200 transition-colors">
+        {/* Name — single line truncated with ellipsis; full name visible on hover via title */}
+        <a
+          href={mapsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          title={hotel.name}
+          onClick={(e) => e.stopPropagation()}
+          className="text-sm font-bold text-white truncate block group-hover:text-indigo-200 transition-colors hover:underline"
+        >
           {hotel.name}
-        </p>
+        </a>
 
         {/* Stars + rating */}
         {hotel.rating !== null && (

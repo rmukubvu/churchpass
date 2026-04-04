@@ -18,7 +18,7 @@ export function EventCard({ event, churchSlug, className }: EventCardProps) {
     <Link
       href={`/${churchSlug}/events/${event.id}`}
       className={cn(
-        "group relative flex flex-col rounded-2xl overflow-hidden bg-[#1a1a1a] border border-white/5",
+        "group relative flex flex-col h-full rounded-2xl overflow-hidden bg-[#1a1a1a] border border-white/5",
         "hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-900/20",
         "transition-all duration-200",
         className
@@ -59,9 +59,13 @@ export function EventCard({ event, churchSlug, className }: EventCardProps) {
         </div>
       </div>
 
-      {/* Info */}
-      <div className="flex flex-col gap-2 p-4">
-        <h3 className="font-bold text-white text-base leading-snug line-clamp-2 group-hover:text-indigo-300 transition-colors">
+      {/* Info — flex-1 so it fills remaining height, pushing CTA to bottom */}
+      <div className="flex flex-col flex-1 gap-2 p-4">
+        {/* Fixed 2-line slot: line-clamp-2 + min-h reserves space even for 1-line titles */}
+        <h3
+          className="font-bold text-white text-base leading-snug line-clamp-2 group-hover:text-indigo-300 transition-colors"
+          style={{ minHeight: "2.75rem" }}
+        >
           {event.title}
         </h3>
 
@@ -79,13 +83,13 @@ export function EventCard({ event, churchSlug, className }: EventCardProps) {
               <svg className="w-3 h-3 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
               </svg>
-              {event.capacity} capacity
+              {event.capacity.toLocaleString()} capacity
             </p>
           )}
         </div>
 
-        {/* RSVP CTA */}
-        <div className="mt-1 pt-3 border-t border-white/5 flex items-center justify-between">
+        {/* RSVP CTA — pinned to bottom via mt-auto */}
+        <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
           <span className="text-xs text-white/30 uppercase tracking-wider font-medium">
             {event.rsvpRequired ? "RSVP required" : "Free entry"}
           </span>

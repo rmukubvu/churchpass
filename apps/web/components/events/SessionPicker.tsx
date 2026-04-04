@@ -83,7 +83,7 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
     <div className="space-y-4">
       <div>
         <p className="text-[10px] text-white/30 uppercase tracking-wider mb-3">Select your sessions</p>
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
           {sessions.map((session) => {
             const isSelected = selected.has(session.id);
             const dateLabel = formatShortDate(session.startsAt);

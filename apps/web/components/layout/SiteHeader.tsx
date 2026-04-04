@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { SignInButton, SignedIn, SignedOut, UserButton, useUser } from "@clerk/nextjs";
 
-/** Admin link is only shown to users with role === "admin" in Clerk publicMetadata */
+/** Shows "My Church" for church admins and "Admin" for super-admins */
 function AdminLink() {
   const { user, isLoaded } = useUser();
   if (!isLoaded || !user) return null;
 
-  const isAdmin =
+  const isSuperAdmin =
     user.publicMetadata?.role === "admin" ||
     // local dev convenience: NEXT_PUBLIC_ADMIN_USER_IDS env var
     (process.env["NEXT_PUBLIC_ADMIN_USER_IDS"] ?? "")
@@ -16,15 +16,28 @@ function AdminLink() {
       .map((id) => id.trim())
       .includes(user.id);
 
-  if (!isAdmin) return null;
+  const adminOf = user.publicMetadata?.adminOf as string[] | undefined;
+  const churchSlug = adminOf?.[0];
 
   return (
-    <Link
-      href="/admin"
-      className="text-sm text-white/70 hover:text-white transition-colors"
-    >
-      Dashboard
-    </Link>
+    <>
+      {churchSlug && (
+        <Link
+          href={`/${churchSlug}/admin`}
+          className="text-sm text-white/70 hover:text-white transition-colors"
+        >
+          My Church
+        </Link>
+      )}
+      {isSuperAdmin && (
+        <Link
+          href="/admin"
+          className="text-sm text-white/70 hover:text-white transition-colors"
+        >
+          Admin
+        </Link>
+      )}
+    </>
   );
 }
 
@@ -63,11 +76,12 @@ export function SiteHeader() {
                 Sign in
               </button>
             </SignInButton>
-            <SignInButton mode="modal">
-              <button className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-                Get started
-              </button>
-            </SignInButton>
+            <Link
+              href="/register"
+              className="bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            >
+              Get started
+            </Link>
           </SignedOut>
 
           <SignedIn>
