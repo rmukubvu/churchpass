@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       brandColour: brandColour ?? "#4F46E5",
       timezone: "UTC",
       plan: "free",
+      ownerClerkUserId: userId,
     })
     .returning();
 

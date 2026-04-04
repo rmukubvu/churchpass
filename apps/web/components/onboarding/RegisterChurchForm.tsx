@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useUser } from "@clerk/nextjs";
 
 const PRESET_COLOURS = [
   { value: "#4F46E5", label: "Indigo" },
@@ -22,6 +23,7 @@ function toSlug(value: string): string {
 }
 
 export function RegisterChurchForm() {
+  const { user } = useUser();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
@@ -80,8 +82,9 @@ export function RegisterChurchForm() {
         return;
       }
 
-      // Full page navigation so Clerk issues a fresh session token
-      // with the updated publicMetadata.adminOf before we hit the admin page
+      // Force Clerk to reload the user so the JWT has the updated
+      // publicMetadata.adminOf before we navigate to the admin page
+      await user?.reload();
       window.location.href = `/${data.slug}/admin`;
     } catch {
       setError("Network error. Please check your connection and try again.");

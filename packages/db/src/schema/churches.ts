@@ -19,6 +19,7 @@ export const churches = pgTable("churches", {
   timezone: text("timezone").notNull().default("UTC"),
   address: text("address"),
   plan: churchPlanEnum("plan").notNull().default("free"),
+  ownerClerkUserId: text("owner_clerk_user_id"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

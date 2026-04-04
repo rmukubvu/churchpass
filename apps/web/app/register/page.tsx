@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { churches } from "@sanctuary/db";
@@ -10,19 +10,13 @@ export default async function RegisterPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in?redirect_url=/register");
 
-  const user = await currentUser();
-  const adminOf = user?.publicMetadata?.adminOf as string[] | undefined;
-
-  // Only redirect to admin if the church actually exists in the DB
-  if (adminOf && adminOf.length > 0) {
-    const [existing] = await db
-      .select({ id: churches.id })
-      .from(churches)
-      .where(eq(churches.slug, adminOf[0]))
-      .limit(1);
-    if (existing) redirect(`/${adminOf[0]}/admin`);
-    // Church no longer exists — fall through to show the registration form
-  }
+  // Redirect if this user already owns a church (DB-authoritative, no JWT stale issue)
+  const [ownedChurch] = await db
+    .select({ slug: churches.slug })
+    .from(churches)
+    .where(eq(churches.ownerClerkUserId, userId!))
+    .limit(1);
+  if (ownedChurch) redirect(`/${ownedChurch.slug}/admin`);
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
