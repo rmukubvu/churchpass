@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BannerUpload } from "./BannerUpload";
+import { LocationAutocomplete } from "./LocationAutocomplete";
 
 const CATEGORIES = [
   { value: "worship", label: "Worship" },
@@ -197,12 +198,10 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
           label="Location"
           hint="Full address — used for hotel suggestions and Google Maps."
         >
-          <input
-            type="text"
+          <LocationAutocomplete
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={setLocation}
             placeholder="Liverpool Cathedral, Liverpool, UK"
-            className={inputClass}
           />
         </Field>
       </div>
