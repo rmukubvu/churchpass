@@ -67,7 +67,7 @@ export default async function AdminOverviewPage({ params }: Props) {
   const { slug } = await params;
 
   if (!userId) redirect(`/sign-in?redirect_url=/${slug}/admin`);
-  if (!(await isChurchAdmin(slug))) redirect(`/${slug}`);
+  if (!(await isChurchAdmin(slug))) redirect(`/register`);
 
   let data;
   try {

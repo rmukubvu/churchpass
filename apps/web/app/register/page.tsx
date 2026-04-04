@@ -1,5 +1,8 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { db } from "@/server/db";
+import { churches } from "@sanctuary/db";
+import { eq } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { RegisterChurchForm } from "@/components/onboarding/RegisterChurchForm";
 
@@ -9,8 +12,16 @@ export default async function RegisterPage() {
 
   const user = await currentUser();
   const adminOf = user?.publicMetadata?.adminOf as string[] | undefined;
+
+  // Only redirect to admin if the church actually exists in the DB
   if (adminOf && adminOf.length > 0) {
-    redirect(`/${adminOf[0]}/admin`);
+    const [existing] = await db
+      .select({ id: churches.id })
+      .from(churches)
+      .where(eq(churches.slug, adminOf[0]))
+      .limit(1);
+    if (existing) redirect(`/${adminOf[0]}/admin`);
+    // Church no longer exists — fall through to show the registration form
   }
 
   return (
