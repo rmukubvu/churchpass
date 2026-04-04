@@ -25,6 +25,7 @@ type SelectableEventSectionProps = {
   events: Event[];
   churchSlug: string;
   churchName: string;
+  sessionCounts?: Record<string, number>;
   initialHasMore?: boolean;
 };
 
@@ -32,6 +33,7 @@ export function SelectableEventSection({
   events: initialEvents,
   churchSlug,
   churchName,
+  sessionCounts = {},
   initialHasMore = false,
 }: SelectableEventSectionProps) {
   const [allEvents, setAllEvents] = useState<Event[]>(initialEvents);
@@ -62,6 +64,10 @@ export function SelectableEventSection({
   }, []);
 
   const handleToggle = useCallback((eventId: string) => {
+    // Parent conference events (with sessions) are not directly RSVPable
+    const event = allEvents.find((e) => e.id === eventId);
+    if (event && (sessionCounts[eventId] ?? 0) > 0) return;
+
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (next.has(eventId)) {
@@ -71,7 +77,7 @@ export function SelectableEventSection({
       }
       return next;
     });
-  }, []);
+  }, [allEvents, sessionCounts]);
 
   const handleSuccess = useCallback(() => {
     setSelectedIds(new Set());
@@ -128,7 +134,7 @@ export function SelectableEventSection({
             strokeLinecap="round"
           />
         </svg>
-        Tap events to select — RSVP to multiple sessions in one shot
+        Tap events to select — RSVP to multiple in one shot · Multi-day conferences let you pick individual sessions
       </p>
 
       {filteredEvents.length === 0 ? (
@@ -146,6 +152,7 @@ export function SelectableEventSection({
                 churchSlug={churchSlug}
                 selected={selectedIds.has(event.id)}
                 onToggle={handleToggle}
+                sessionCount={sessionCounts[event.id] ?? 0}
               />
             ))}
           </div>

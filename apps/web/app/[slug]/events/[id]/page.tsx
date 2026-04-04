@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { RsvpButton } from "@/components/rsvp/RsvpButton";
 import { MyTicket } from "@/components/rsvp/MyTicket";
 import { NearbyStays } from "@/components/events/NearbyStays";
+import { SessionPicker } from "@/components/events/SessionPicker";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { formatDate } from "@/lib/utils";
 import { getDevData } from "@/lib/dev-data";
@@ -20,7 +21,7 @@ type Props = {
 async function fetchEventData(
   slug: string,
   id: string
-): Promise<{ event: Event; church: Church } | null> {
+): Promise<{ event: Event; church: Church; sessions: Event[]; parentEvent: Event | null } | null> {
   try {
     const [event] = await db
       .select()
@@ -37,14 +38,34 @@ async function fetchEventData(
       .limit(1);
 
     if (!church) return null;
-    return { event, church };
+
+    // If this is a parent event, fetch its sessions
+    const sessions = event.parentEventId === null
+      ? await db
+          .select()
+          .from(events)
+          .where(eq(events.parentEventId, event.id))
+          .orderBy(events.startsAt)
+      : [];
+
+    // If this is a session, fetch its parent
+    const parentEvent = event.parentEventId
+      ? await db
+          .select()
+          .from(events)
+          .where(eq(events.id, event.parentEventId))
+          .limit(1)
+          .then((rows) => rows[0] ?? null)
+      : null;
+
+    return { event, church, sessions, parentEvent };
   } catch {
     if (process.env.NODE_ENV === "development") {
       const devData = getDevData(slug);
       if (!devData) return null;
       const event = devData.events.find((e) => e.id === id);
       if (!event) return null;
-      return { event, church: devData.church };
+      return { event, church: devData.church, sessions: [], parentEvent: null };
     }
     throw new Error("Database unavailable");
   }
@@ -55,7 +76,8 @@ export default async function EventPage({ params }: Props) {
   const data = await fetchEventData(slug, id);
   if (!data) notFound();
 
-  const { event, church } = data;
+  const { event, church, sessions, parentEvent } = data;
+  const isParentConference = sessions.length > 0;
 
   const start = new Date(event.startsAt);
   const end = new Date(event.endsAt);
@@ -99,7 +121,7 @@ export default async function EventPage({ params }: Props) {
         />
 
         {/* Back breadcrumb */}
-        <div className="absolute top-6 left-6">
+        <div className="absolute top-6 left-6 flex items-center gap-2">
           <Link
             href={`/${slug}`}
             className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10"
@@ -109,6 +131,17 @@ export default async function EventPage({ params }: Props) {
             </svg>
             {church.name}
           </Link>
+          {parentEvent && (
+            <>
+              <span className="text-white/20 text-xs">/</span>
+              <Link
+                href={`/${slug}/events/${parentEvent.id}`}
+                className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white transition-colors bg-black/40 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 max-w-[200px] truncate"
+              >
+                {parentEvent.title}
+              </Link>
+            </>
+          )}
         </div>
 
         {/* Hero text */}
@@ -194,36 +227,48 @@ export default async function EventPage({ params }: Props) {
               </div>
             </div>
 
-            {/* Capacity */}
-            {spotsLeft !== null && (
-              <div>
-                <div className="flex justify-between text-xs text-white/40 mb-1.5">
-                  <span>Capacity</span>
-                  <span>{spotsLeft.toLocaleString()} spots</span>
+            {isParentConference ? (
+              /* Session picker for multi-day conferences */
+              <SessionPicker
+                sessions={sessions}
+                churchSlug={slug}
+                churchName={church.name}
+                brandColour={church.brandColour}
+              />
+            ) : (
+              <>
+                {/* Capacity */}
+                {spotsLeft !== null && (
+                  <div>
+                    <div className="flex justify-between text-xs text-white/40 mb-1.5">
+                      <span>Capacity</span>
+                      <span>{spotsLeft.toLocaleString()} spots</span>
+                    </div>
+                    <div className="h-1 rounded-full bg-white/10">
+                      <div className="h-1 rounded-full bg-indigo-500 w-[5%]" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Entry type */}
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-white/40">Entry</span>
+                  <span className={event.rsvpRequired ? "text-amber-400 font-medium" : "text-emerald-400 font-medium"}>
+                    {event.rsvpRequired ? "RSVP required" : "Free entry"}
+                  </span>
                 </div>
-                <div className="h-1 rounded-full bg-white/10">
-                  <div className="h-1 rounded-full bg-indigo-500 w-[5%]" />
-                </div>
-              </div>
+
+                {/* RSVP button */}
+                <RsvpButton eventId={event.id} brandColour={church.brandColour} />
+
+                <p className="text-[10px] text-white/20 text-center">
+                  You&apos;ll receive a confirmation email with your QR ticket after registering.
+                </p>
+
+                {/* My Ticket — only rendered for signed-in users who have RSVPd */}
+                <MyTicket eventId={event.id} brandColour={church.brandColour} />
+              </>
             )}
-
-            {/* Entry type */}
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-white/40">Entry</span>
-              <span className={event.rsvpRequired ? "text-amber-400 font-medium" : "text-emerald-400 font-medium"}>
-                {event.rsvpRequired ? "RSVP required" : "Free entry"}
-              </span>
-            </div>
-
-            {/* RSVP button */}
-            <RsvpButton eventId={event.id} brandColour={church.brandColour} />
-
-            <p className="text-[10px] text-white/20 text-center">
-              You&apos;ll receive a confirmation email with your QR ticket after registering.
-            </p>
-
-            {/* My Ticket — only rendered for signed-in users who have RSVPd */}
-            <MyTicket eventId={event.id} brandColour={church.brandColour} />
           </div>
         </div>
       </div>
@@ -231,10 +276,12 @@ export default async function EventPage({ params }: Props) {
       {/* Nearby Stays */}
       <NearbyStays eventId={event.id} />
 
-      {/* Sticky mobile RSVP bar */}
-      <div className="fixed bottom-0 left-0 right-0 md:hidden z-50 p-4 bg-[#0f0f0f]/95 backdrop-blur border-t border-white/5">
-        <RsvpButton eventId={event.id} brandColour={church.brandColour} />
-      </div>
+      {/* Sticky mobile RSVP bar — hidden for parent conferences (session picker in card) */}
+      {!isParentConference && (
+        <div className="fixed bottom-0 left-0 right-0 md:hidden z-50 p-4 bg-[#0f0f0f]/95 backdrop-blur border-t border-white/5">
+          <RsvpButton eventId={event.id} brandColour={church.brandColour} />
+        </div>
+      )}
     </div>
   );
 }

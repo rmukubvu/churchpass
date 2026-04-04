@@ -7,6 +7,7 @@ import {
   real,
   pgEnum,
 } from "drizzle-orm/pg-core";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { churches } from "./churches";
 import { createId } from "../utils/id";
 
@@ -36,6 +37,7 @@ export const events = pgTable("events", {
   capacity: integer("capacity"),
   latitude: real("latitude"),
   longitude: real("longitude"),
+  parentEventId: text("parent_event_id").references((): AnyPgColumn => events.id, { onDelete: "cascade" }),
   rsvpRequired: boolean("rsvp_required").notNull().default(true),
   isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })

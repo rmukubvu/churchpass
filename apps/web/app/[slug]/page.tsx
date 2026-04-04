@@ -1,7 +1,7 @@
 import Image from "next/image";
 import { db } from "@/server/db";
 import { churches, events } from "@sanctuary/db";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc, gte, isNull, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SelectableEventSection } from "@/components/events/SelectableEventSection";
@@ -14,7 +14,7 @@ type Props = {
 
 async function fetchChurchData(
   slug: string
-): Promise<{ church: Church; upcomingEvents: Event[] } | null> {
+): Promise<{ church: Church; upcomingEvents: Event[]; sessionCounts: Record<string, number> } | null> {
   try {
     const [church] = await db
       .select()
@@ -24,20 +24,36 @@ async function fetchChurchData(
 
     if (!church) return null;
 
+    const now = new Date();
     const upcomingEvents = await db
       .select()
       .from(events)
-      .where(eq(events.churchId, church.id))
+      .where(and(eq(events.churchId, church.id), isNull(events.parentEventId), gte(events.startsAt, now)))
       .orderBy(desc(events.startsAt))
       .limit(12);
 
-    return { church, upcomingEvents };
+    // Fetch session counts for all parent events
+    const parentIds = upcomingEvents.map((e) => e.id);
+    const sessionCounts: Record<string, number> = {};
+    if (parentIds.length > 0) {
+      const sessionRows = await db
+        .select({ parentEventId: events.parentEventId })
+        .from(events)
+        .where(inArray(events.parentEventId, parentIds));
+      for (const row of sessionRows) {
+        if (row.parentEventId) {
+          sessionCounts[row.parentEventId] = (sessionCounts[row.parentEventId] ?? 0) + 1;
+        }
+      }
+    }
+
+    return { church, upcomingEvents, sessionCounts };
   } catch {
     // DB unavailable — fall back to static dev data in development
     if (process.env.NODE_ENV === "development") {
       const devData = getDevData(slug);
       if (!devData) return null;
-      return { church: devData.church, upcomingEvents: devData.events };
+      return { church: devData.church, upcomingEvents: devData.events, sessionCounts: {} };
     }
     throw new Error("Database unavailable");
   }
@@ -49,7 +65,7 @@ export default async function ChurchPage({ params }: Props) {
   const data = await fetchChurchData(slug);
   if (!data) notFound();
 
-  const { church, upcomingEvents } = data;
+  const { church, upcomingEvents, sessionCounts } = data;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
@@ -142,6 +158,7 @@ export default async function ChurchPage({ params }: Props) {
             events={upcomingEvents}
             churchSlug={slug}
             churchName={church.name}
+            sessionCounts={sessionCounts}
             initialHasMore={upcomingEvents.length === 12}
           />
       </section>

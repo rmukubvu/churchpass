@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, gte, desc, ilike, or } from "drizzle-orm";
+import { eq, and, gte, desc, ilike, or, isNull } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../init";
 import { events, churches } from "@sanctuary/db";
 import { geocodeAddress } from "@/lib/geocode";
@@ -31,6 +31,7 @@ export const eventsRouter = router({
           and(
             eq(events.churchId, church[0].id),
             eq(events.isPublic, true),
+            isNull(events.parentEventId),
             input.upcoming ? gte(events.startsAt, now) : undefined
           )
         )
@@ -50,6 +51,17 @@ export const eventsRouter = router({
       return result[0] ?? null;
     }),
 
+  /** Fetch all sessions for a parent event, ordered by start time */
+  sessions: publicProcedure
+    .input(z.object({ parentEventId: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return ctx.db
+        .select()
+        .from(events)
+        .where(eq(events.parentEventId, input.parentEventId))
+        .orderBy(events.startsAt);
+    }),
+
   /** All upcoming public events across every church — for home feed */
   upcomingAll: publicProcedure
     .input(z.object({
@@ -66,7 +78,7 @@ export const eventsRouter = router({
         })
         .from(events)
         .innerJoin(churches, eq(events.churchId, churches.id))
-        .where(and(eq(events.isPublic, true), gte(events.startsAt, now)))
+        .where(and(eq(events.isPublic, true), gte(events.startsAt, now), isNull(events.parentEventId)))
         .orderBy(events.startsAt)
         .limit(input.limit)
         .offset(input.offset);
