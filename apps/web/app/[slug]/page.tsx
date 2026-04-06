@@ -29,7 +29,7 @@ async function fetchChurchData(
       .select()
       .from(events)
       .where(and(eq(events.churchId, church.id), isNull(events.parentEventId), gte(events.startsAt, now)))
-      .orderBy(desc(events.startsAt))
+      .orderBy(events.startsAt)
       .limit(12);
 
     // Fetch session counts for all parent events

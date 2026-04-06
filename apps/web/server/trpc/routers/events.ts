@@ -35,7 +35,7 @@ export const eventsRouter = router({
             input.upcoming ? gte(events.startsAt, now) : undefined
           )
         )
-        .orderBy(desc(events.startsAt))
+        .orderBy(events.startsAt)
         .limit(input.limit)
         .offset(input.offset);
     }),
