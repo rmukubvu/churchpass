@@ -136,6 +136,7 @@ export const eventsRouter = router({
         startsAt: z.date(),
         endsAt: z.date(),
         capacity: z.number().int().positive().optional(),
+        conditions: z.string().optional(),
         rsvpRequired: z.boolean().default(true),
         isPublic: z.boolean().default(true),
         bannerUrl: z.string().url().optional(),
@@ -160,6 +161,7 @@ export const eventsRouter = router({
         eventId: z.string(),
         title: z.string().min(1).max(200).optional(),
         description: z.string().optional(),
+        conditions: z.string().optional(),
         location: z.string().optional(),
         category: z
           .enum(["worship", "conference", "outreach", "youth", "family", "other"])

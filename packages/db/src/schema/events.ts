@@ -38,6 +38,7 @@ export const events = pgTable("events", {
   latitude: real("latitude"),
   longitude: real("longitude"),
   parentEventId: text("parent_event_id").references((): AnyPgColumn => events.id, { onDelete: "cascade" }),
+  conditions: text("conditions"),
   rsvpRequired: boolean("rsvp_required").notNull().default(true),
   isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })

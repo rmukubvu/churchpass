@@ -11,6 +11,8 @@ export interface RsvpEventSummary {
   checkInUrl?: string;
   /** CID used for inline attachment (populated by sendgrid.ts) */
   qrCid?: string;
+  /** Attendance conditions — newline-separated list */
+  conditions?: string | null;
 }
 
 export interface RsvpConfirmationData {
@@ -126,6 +128,27 @@ function eventCard(event: RsvpEventSummary, churchName: string, appUrl: string):
                     <td style="width:20px;vertical-align:top;padding-top:1px;font-size:14px;">📍</td>
                     <td style="font-size:14px;color:#9ca3af;line-height:1.5;">
                       ${event.location}
+                    </td>
+                  </tr>
+                </table>` : ""}
+
+                ${event.conditions ? `
+                <!-- Attendance conditions -->
+                <table cellpadding="0" cellspacing="0" width="100%" style="margin-top:16px;">
+                  <tr>
+                    <td style="background:#1a1a2e;border-radius:10px;border:1px solid #2e2e4a;padding:14px 16px;">
+                      <p style="margin:0 0 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;color:#6366f1;">
+                        ⚠️ Attendance conditions
+                      </p>
+                      ${event.conditions.split("\n").filter((l: string) => l.trim()).map((line: string) => `
+                      <table cellpadding="0" cellspacing="0" style="margin-bottom:6px;">
+                        <tr>
+                          <td style="width:16px;vertical-align:top;padding-top:5px;">
+                            <div style="width:5px;height:5px;border-radius:50%;background:#6366f1;"></div>
+                          </td>
+                          <td style="font-size:13px;color:#d1d5db;line-height:1.5;">${line.trim()}</td>
+                        </tr>
+                      </table>`).join("")}
                     </td>
                   </tr>
                 </table>` : ""}

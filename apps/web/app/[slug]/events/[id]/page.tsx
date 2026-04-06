@@ -260,6 +260,27 @@ export default async function EventPage({ params }: Props) {
                 </div>
               </div>
             )}
+
+            {/* Attendance Conditions */}
+            {event.conditions && (
+              <div className="pb-8 border-b border-white/5">
+                <h2 className="text-lg font-bold text-white mb-4">Attendance conditions</h2>
+                <div
+                  className="rounded-2xl border p-5 space-y-3"
+                  style={{ background: `${church.brandColour}08`, borderColor: `${church.brandColour}25` }}
+                >
+                  {event.conditions.split("\n").filter(l => l.trim()).map((line, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <div
+                        className="mt-1.5 w-1.5 h-1.5 rounded-full flex-none"
+                        style={{ backgroundColor: church.brandColour }}
+                      />
+                      <p className="text-sm text-white/70 leading-snug">{line.trim()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Right — sticky RSVP card */}

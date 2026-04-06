@@ -84,6 +84,7 @@ export const rsvpsRouter = router({
         endsAt: event.endsAt ?? null,
         location: event.location ?? null,
         bannerUrl: event.bannerUrl ?? null,
+        conditions: event.conditions ?? null,
       };
 
       // Send confirmation email with QR code (non-blocking)
@@ -204,6 +205,7 @@ export const rsvpsRouter = router({
         endsAt: e.endsAt ?? null,
         location: e.location ?? null,
         bannerUrl: e.bannerUrl ?? null,
+        conditions: e.conditions ?? null,
       }));
 
       const walletPassTokens = foundEvents.map((e) => tokenByEventId.get(e.id) ?? null);

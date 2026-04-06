@@ -65,6 +65,7 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
   const [capacity, setCapacity] = useState("");
+  const [conditions, setConditions] = useState("");
   const [rsvpRequired, setRsvpRequired] = useState(true);
   const [isPublic, setIsPublic] = useState(true);
   const [bannerUrl, setBannerUrl] = useState("");
@@ -85,6 +86,7 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
             churchId,
             title: title.trim(),
             description: description.trim() || undefined,
+            conditions: conditions.trim() || undefined,
             category,
             location: location.trim() || undefined,
             startsAt: new Date(startsAt),
@@ -158,6 +160,36 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
           rows={4}
           className={cn(inputClass, "resize-none")}
         />
+      </Field>
+
+      {/* Attendance Conditions */}
+      <Field
+        label="Attendance conditions"
+        hint="One condition per line — shown on the event page and in confirmation emails."
+      >
+        <div className="relative">
+          <textarea
+            value={conditions}
+            onChange={(e) => setConditions(e.target.value)}
+            placeholder={"Doors Open 3pm\nNo luggage for all services\nNo ticket, no entry\nChildren under 5 must be accompanied by an adult"}
+            rows={5}
+            className={cn(inputClass, "resize-none")}
+          />
+          {/* bullet-point preview hint */}
+          {conditions.trim() && (
+            <div className="mt-2 p-3 rounded-xl bg-white/3 border border-white/5">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-white/25 mb-2">Preview</p>
+              <ul className="space-y-1">
+                {conditions.split("\n").filter(l => l.trim()).map((line, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-white/50">
+                    <span className="mt-1.5 w-1 h-1 rounded-full bg-indigo-400/60 flex-none" />
+                    {line.trim()}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
       </Field>
 
       {/* Category + Location — 2 cols on md+ */}
