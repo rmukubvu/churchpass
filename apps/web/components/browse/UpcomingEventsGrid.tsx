@@ -36,15 +36,24 @@ export function UpcomingEventsGrid({ rows: initialRows }: { rows: EventRow[] }) 
     active === "all" ? allRows : allRows.filter((r) => r.event.category === active);
 
   async function loadMore(): Promise<boolean> {
-    const res = await fetch("/api/trpc/events.upcomingAll", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: { limit: PAGE_SIZE, offset } }),
+    const input = encodeURIComponent(JSON.stringify({ json: { limit: PAGE_SIZE, offset } }));
+    const res = await fetch(`/api/trpc/events.upcomingAll?input=${input}`, {
+      method: "GET",
     });
     if (!res.ok) return false;
 
     const data = await res.json();
-    const newRows: EventRow[] = data?.result?.data?.json ?? [];
+    const raw: EventRow[] = data?.result?.data?.json ?? [];
+    // Dates arrive as strings from the JSON API — convert them back to Date objects
+    const newRows: EventRow[] = raw.map((row) => ({
+      ...row,
+      event: {
+        ...row.event,
+        startsAt: new Date(row.event.startsAt),
+        endsAt: row.event.endsAt ? new Date(row.event.endsAt) : null,
+        createdAt: new Date(row.event.createdAt),
+      },
+    }));
 
     setAllRows((prev) => {
       const existingIds = new Set(prev.map((r) => r.event.id));
