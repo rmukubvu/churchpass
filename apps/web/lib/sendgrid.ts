@@ -22,7 +22,7 @@ async function withQrAttachments(
   tokens: (string | null)[]
 ): Promise<{
   events: RsvpEventSummary[];
-  attachments: sgMail.MailDataRequired["attachments"];
+  attachments: NonNullable<sgMail.MailDataRequired["attachments"]>;
 }> {
   const attachments: NonNullable<sgMail.MailDataRequired["attachments"]> = [];
   const enriched: RsvpEventSummary[] = [];
@@ -48,7 +48,7 @@ async function withQrAttachments(
         type: "image/png",
         filename: `qr-${i}.png`,
         disposition: "inline",
-        content_id: cid,
+        contentId: cid,
       });
 
       enriched.push({ ...event, qrCid: cid, checkInUrl: url });
@@ -85,6 +85,6 @@ export async function sendRsvpConfirmation(
     subject,
     html,
     text,
-    attachments: attachments.length > 0 ? attachments : undefined,
-  });
+    ...(attachments.length > 0 && { attachments }),
+  } as sgMail.MailDataRequired);
 }
