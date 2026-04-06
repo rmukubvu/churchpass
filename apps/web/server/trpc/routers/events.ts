@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, gte, desc, ilike, or, isNull } from "drizzle-orm";
+import { eq, and, gte, desc, ilike, or, isNull, sql } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../init";
 import { events, churches } from "@sanctuary/db";
 import { geocodeAddress } from "@/lib/geocode";
@@ -101,11 +101,7 @@ export const eventsRouter = router({
         eq(events.isPublic, true),
         gte(events.startsAt, now),
         q
-          ? or(
-              ilike(events.title, `%${q}%`),
-              ilike(events.location, `%${q}%`),
-              ilike(events.description, `%${q}%`)
-            )
+          ? sql`${events.searchVector} @@ plainto_tsquery('english', ${q})`
           : undefined,
         city ? ilike(events.location, `%${city}%`) : undefined,
       ].filter(Boolean) as Parameters<typeof and>;

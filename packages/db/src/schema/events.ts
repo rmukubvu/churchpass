@@ -6,7 +6,12 @@ import {
   integer,
   real,
   pgEnum,
+  customType,
 } from "drizzle-orm/pg-core";
+
+const tsvector = customType<{ data: string }>({
+  dataType() { return "tsvector"; },
+});
 import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { churches } from "./churches";
 import { createId } from "../utils/id";
@@ -39,6 +44,7 @@ export const events = pgTable("events", {
   longitude: real("longitude"),
   parentEventId: text("parent_event_id").references((): AnyPgColumn => events.id, { onDelete: "cascade" }),
   conditions: text("conditions"),
+  searchVector: tsvector("search_vector"),
   rsvpRequired: boolean("rsvp_required").notNull().default(true),
   isPublic: boolean("is_public").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
