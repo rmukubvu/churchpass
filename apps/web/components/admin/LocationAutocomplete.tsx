@@ -96,7 +96,8 @@ export function LocationAutocomplete({
       setHighlighted((h) => Math.max(h - 1, 0));
     } else if (e.key === "Enter" && highlighted >= 0) {
       e.preventDefault();
-      selectPrediction(predictions[highlighted]);
+      const prediction = predictions[highlighted];
+      if (prediction) selectPrediction(prediction);
     } else if (e.key === "Escape") {
       setOpen(false);
     }
