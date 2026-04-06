@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth, SignInButton } from "@clerk/nextjs";
+import { trpc } from "@/lib/trpc-client";
 
 type RsvpButtonProps = {
   eventId: string;
@@ -16,12 +17,10 @@ export function RsvpButton({ eventId, brandColour = "#4F46E5" }: RsvpButtonProps
   async function handleRsvp() {
     setLoading(true);
     try {
-      const res = await fetch("/api/trpc/rsvps.create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ json: { eventId } }),
-      });
-      if (res.ok) setDone(true);
+      await trpc.rsvps.create.mutate({ eventId });
+      setDone(true);
+    } catch {
+      // TODO: surface error to user
     } finally {
       setLoading(false);
     }

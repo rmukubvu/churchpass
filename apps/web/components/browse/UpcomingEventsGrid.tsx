@@ -6,6 +6,7 @@ import { EventCard } from "@/components/events/EventCard";
 import { LoadMoreButton } from "@/components/browse/LoadMoreButton";
 import Link from "next/link";
 import type { Event } from "@sanctuary/db";
+import { trpc } from "@/lib/trpc-client";
 
 const CATEGORIES = [
   { value: "all", label: "All Events" },
@@ -36,33 +37,19 @@ export function UpcomingEventsGrid({ rows: initialRows }: { rows: EventRow[] }) 
     active === "all" ? allRows : allRows.filter((r) => r.event.category === active);
 
   async function loadMore(): Promise<boolean> {
-    const input = encodeURIComponent(JSON.stringify({ json: { limit: PAGE_SIZE, offset } }));
-    const res = await fetch(`/api/trpc/events.upcomingAll?input=${input}`, {
-      method: "GET",
-    });
-    if (!res.ok) return false;
-
-    const data = await res.json();
-    const raw: EventRow[] = data?.result?.data?.json ?? [];
-    // Dates arrive as strings from the JSON API — convert them back to Date objects
-    const newRows: EventRow[] = raw.map((row) => ({
-      ...row,
-      event: {
-        ...row.event,
-        startsAt: new Date(row.event.startsAt),
-        endsAt: new Date(row.event.endsAt),
-        createdAt: new Date(row.event.createdAt),
-      },
-    }));
-
-    setAllRows((prev) => {
-      const existingIds = new Set(prev.map((r) => r.event.id));
-      return [...prev, ...newRows.filter((r) => !existingIds.has(r.event.id))];
-    });
-    setOffset((o) => o + newRows.length);
-    const more = newRows.length === PAGE_SIZE;
-    setHasMore(more);
-    return more;
+    try {
+      const newRows = await trpc.events.upcomingAll.query({ limit: PAGE_SIZE, offset });
+      setAllRows((prev) => {
+        const existingIds = new Set(prev.map((r) => r.event.id));
+        return [...prev, ...newRows.filter((r) => !existingIds.has(r.event.id))];
+      });
+      setOffset((o) => o + newRows.length);
+      const more = newRows.length === PAGE_SIZE;
+      setHasMore(more);
+      return more;
+    } catch {
+      return false;
+    }
   }
 
   return (

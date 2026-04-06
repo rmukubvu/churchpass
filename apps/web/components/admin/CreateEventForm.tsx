@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BannerUpload } from "./BannerUpload";
 import { LocationAutocomplete } from "./LocationAutocomplete";
+import { trpc } from "@/lib/trpc-client";
 
 const CATEGORIES = [
   { value: "worship", label: "Worship" },
@@ -78,42 +79,25 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/trpc/events.create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: {
-            churchId,
-            title: title.trim(),
-            description: description.trim() || undefined,
-            conditions: conditions.trim() || undefined,
-            category,
-            location: location.trim() || undefined,
-            startsAt: new Date(startsAt),
-            endsAt: new Date(endsAt),
-            capacity: capacity ? parseInt(capacity, 10) : undefined,
-            rsvpRequired,
-            isPublic,
-            bannerUrl: bannerUrl || undefined,
-          },
-        }),
+      const event = await trpc.events.create.mutate({
+        churchId,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        conditions: conditions.trim() || undefined,
+        category,
+        location: location.trim() || undefined,
+        startsAt: new Date(startsAt),
+        endsAt: new Date(endsAt),
+        capacity: capacity ? parseInt(capacity, 10) : undefined,
+        rsvpRequired,
+        isPublic,
+        bannerUrl: bannerUrl || undefined,
       });
 
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error?.message ?? `Request failed (${res.status})`);
-      }
-
-      const data = await res.json();
-      const eventId = data?.result?.data?.json?.id;
-
-      if (eventId) {
-        router.push(`/${churchSlug}/events/${eventId}`);
-      } else {
-        router.push(`/${churchSlug}`);
-      }
-    } catch (err: any) {
-      setErrorMsg(err.message ?? "Something went wrong");
+      if (event) router.push(`/${churchSlug}/events/${event.id}`);
+      else router.push(`/${churchSlug}`);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
       setFormState("error");
       setTimeout(() => setFormState("idle"), 5000);
     }

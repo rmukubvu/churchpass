@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc-client";
 
 type Props = {
   rsvpId: string;
@@ -19,13 +20,7 @@ export function CheckInConfirmButton({ rsvpId, eventId, attendeeName, brandColou
   async function handleCheckIn() {
     setState("loading");
     try {
-      const res = await fetch("/api/trpc/checkins.manual", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ json: { rsvpId, eventId } }),
-      });
-
-      if (!res.ok) throw new Error("Check-in failed");
+      await trpc.checkins.manual.mutate({ rsvpId, eventId });
 
       setCheckedInAt(
         new Intl.DateTimeFormat("en-US", {

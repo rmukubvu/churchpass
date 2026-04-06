@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc-client";
 
 type MultiRsvpBarProps = {
   selectedIds: string[];
@@ -37,26 +38,15 @@ export function MultiRsvpBar({
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/trpc/rsvps.createBatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: { eventIds: selectedIds, churchSlug, churchName },
-        }),
-      });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error?.message ?? `Request failed (${res.status})`);
-      }
+      await trpc.rsvps.createBatch.mutate({ eventIds: selectedIds, churchSlug, churchName });
 
       setState("success");
       onSuccess();
 
       // Reset to idle after 3 s
       setTimeout(() => setState("idle"), 3000);
-    } catch (err: any) {
-      setErrorMsg(err.message ?? "Something went wrong");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
       setState("error");
       setTimeout(() => setState("idle"), 4000);
     }

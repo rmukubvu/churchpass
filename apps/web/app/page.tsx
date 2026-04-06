@@ -1,3 +1,6 @@
+// Revalidate home page every 5 minutes so new events appear without a full redeploy.
+export const revalidate = 300;
+
 import { db } from "@/server/db";
 import { events, churches } from "@sanctuary/db";
 import { eq, and, gte, isNull } from "drizzle-orm";

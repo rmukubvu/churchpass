@@ -1,7 +1,11 @@
+// Revalidate church pages every 5 minutes — balances freshness with DB load.
+// On-demand revalidation can be added when events are created/updated.
+export const revalidate = 300;
+
 import Image from "next/image";
 import { db } from "@/server/db";
 import { churches, events } from "@sanctuary/db";
-import { eq, and, desc, gte, isNull, inArray } from "drizzle-orm";
+import { eq, and, gte, isNull, sql } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SelectableEventSection } from "@/components/events/SelectableEventSection";
@@ -25,27 +29,24 @@ async function fetchChurchData(
     if (!church) return null;
 
     const now = new Date();
-    const upcomingEvents = await db
-      .select()
+
+    // Single query: parent events + session count via correlated subquery
+    const rows = await db
+      .select({
+        event: events,
+        sessionCount: sql<number>`(
+          SELECT COUNT(*) FROM events s WHERE s.parent_event_id = ${events.id}
+        )`.mapWith(Number),
+      })
       .from(events)
       .where(and(eq(events.churchId, church.id), isNull(events.parentEventId), gte(events.startsAt, now)))
       .orderBy(events.startsAt)
       .limit(12);
 
-    // Fetch session counts for all parent events
-    const parentIds = upcomingEvents.map((e) => e.id);
-    const sessionCounts: Record<string, number> = {};
-    if (parentIds.length > 0) {
-      const sessionRows = await db
-        .select({ parentEventId: events.parentEventId })
-        .from(events)
-        .where(inArray(events.parentEventId, parentIds));
-      for (const row of sessionRows) {
-        if (row.parentEventId) {
-          sessionCounts[row.parentEventId] = (sessionCounts[row.parentEventId] ?? 0) + 1;
-        }
-      }
-    }
+    const upcomingEvents = rows.map((r) => r.event);
+    const sessionCounts: Record<string, number> = Object.fromEntries(
+      rows.filter((r) => r.sessionCount > 0).map((r) => [r.event.id, r.sessionCount])
+    );
 
     return { church, upcomingEvents, sessionCounts };
   } catch {

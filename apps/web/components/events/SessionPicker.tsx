@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import type { Event } from "@sanctuary/db";
 import { cn, formatShortDate } from "@/lib/utils";
+import { trpc } from "@/lib/trpc-client";
 
 function formatSessionTime(date: Date) {
   return new Intl.DateTimeFormat("en-US", {
@@ -48,14 +49,7 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/trpc/rsvps.createBatch", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: { eventIds: Array.from(selected), churchSlug, churchName },
-        }),
-      });
-      if (!res.ok) throw new Error("Failed");
+      await trpc.rsvps.createBatch.mutate({ eventIds: Array.from(selected), churchSlug, churchName });
       setDone(true);
       setSelected(new Set());
     } catch {

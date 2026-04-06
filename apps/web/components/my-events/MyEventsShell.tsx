@@ -6,6 +6,7 @@ import Link from "next/link";
 import { cn, formatDate, formatShortDate } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import type { MyEventRow } from "@/app/my-events/page";
+import { trpc } from "@/lib/trpc-client";
 
 type Tab = "upcoming" | "past";
 
@@ -29,14 +30,10 @@ export function MyEventsShell({ rows }: Props) {
 
   async function handleCancel(rsvpId: string) {
     try {
-      await fetch("/api/trpc/rsvps.cancel", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ json: { rsvpId } }),
-      });
+      await trpc.rsvps.cancel.mutate({ rsvpId });
       setCancelled((prev) => new Set([...prev, rsvpId]));
     } catch {
-      // silent fail
+      // silent fail — optimistic cancel, user can retry
     }
   }
 

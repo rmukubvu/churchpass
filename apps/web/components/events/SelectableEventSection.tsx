@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { SelectableEventCard } from "./SelectableEventCard";
 import { MultiRsvpBar } from "@/components/rsvp/MultiRsvpBar";
 import { LoadMoreButton } from "@/components/browse/LoadMoreButton";
+import { trpc } from "@/lib/trpc-client";
 
 const CATEGORIES = [
   { value: "all", label: "All Events" },
@@ -84,24 +85,19 @@ export function SelectableEventSection({
   }, []);
 
   async function loadMore(): Promise<boolean> {
-    const res = await fetch("/api/trpc/events.list", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ json: { churchSlug, limit: PAGE_SIZE, offset } }),
-    });
-    if (!res.ok) return false;
-
-    const data = await res.json();
-    const newEvents: Event[] = data?.result?.data?.json ?? [];
-
-    setAllEvents((prev) => {
-      const existingIds = new Set(prev.map((e) => e.id));
-      return [...prev, ...newEvents.filter((e) => !existingIds.has(e.id))];
-    });
-    setOffset((o) => o + newEvents.length);
-    const more = newEvents.length === PAGE_SIZE;
-    setHasMore(more);
-    return more;
+    try {
+      const newEvents = await trpc.events.list.query({ churchSlug, limit: PAGE_SIZE, offset });
+      setAllEvents((prev) => {
+        const existingIds = new Set(prev.map((e) => e.id));
+        return [...prev, ...newEvents.filter((e) => !existingIds.has(e.id))];
+      });
+      setOffset((o) => o + newEvents.length);
+      const more = newEvents.length === PAGE_SIZE;
+      setHasMore(more);
+      return more;
+    } catch {
+      return false;
+    }
   }
 
   return (

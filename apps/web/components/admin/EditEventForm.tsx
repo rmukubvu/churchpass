@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { trpc } from "@/lib/trpc-client";
 
 const CATEGORIES = [
   { value: "worship", label: "Worship" },
@@ -97,35 +98,24 @@ export function EditEventForm({ event, churchSlug }: Props) {
     setErrorMsg("");
 
     try {
-      const res = await fetch("/api/trpc/events.update", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          json: {
-            eventId: event.id,
-            title: title.trim(),
-            description: description.trim() || undefined,
-            category,
-            location: location.trim() || undefined,
-            startsAt: new Date(startsAt),
-            endsAt: endsAt ? new Date(endsAt) : undefined,
-            capacity: capacity ? parseInt(capacity, 10) : undefined,
-            rsvpRequired,
-            isPublic,
-          },
-        }),
+      await trpc.events.update.mutate({
+        eventId: event.id,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        category,
+        location: location.trim() || undefined,
+        startsAt: new Date(startsAt),
+        endsAt: endsAt ? new Date(endsAt) : undefined,
+        capacity: capacity ? parseInt(capacity, 10) : undefined,
+        rsvpRequired,
+        isPublic,
       });
-
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error?.message ?? `Request failed (${res.status})`);
-      }
 
       setFormState("success");
       router.push(`/${churchSlug}/admin`);
       router.refresh();
-    } catch (err: any) {
-      setErrorMsg(err.message ?? "Something went wrong");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong");
       setFormState("error");
       setTimeout(() => setFormState("idle"), 5000);
     }
