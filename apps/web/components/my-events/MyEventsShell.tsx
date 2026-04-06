@@ -14,17 +14,31 @@ type Props = { rows: MyEventRow[] };
 export function MyEventsShell({ rows }: Props) {
   const [tab, setTab] = useState<Tab>("upcoming");
   const [qrOpen, setQrOpen] = useState<string | null>(null); // rsvpId
+  const [cancelled, setCancelled] = useState<Set<string>>(new Set());
 
   const now = new Date();
   const upcoming = rows.filter(
-    (r) => new Date(r.eventStartsAt) >= now && r.rsvpStatus !== "cancelled"
+    (r) => new Date(r.eventStartsAt) >= now && r.rsvpStatus !== "cancelled" && !cancelled.has(r.rsvpId)
   );
   const past = rows.filter(
-    (r) => new Date(r.eventStartsAt) < now || r.rsvpStatus === "cancelled"
+    (r) => new Date(r.eventStartsAt) < now || r.rsvpStatus === "cancelled" || cancelled.has(r.rsvpId)
   );
 
   const active = tab === "upcoming" ? upcoming : past;
   const openRow = rows.find((r) => r.rsvpId === qrOpen);
+
+  async function handleCancel(rsvpId: string) {
+    try {
+      await fetch("/api/trpc/rsvps.cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ json: { rsvpId } }),
+      });
+      setCancelled((prev) => new Set([...prev, rsvpId]));
+    } catch {
+      // silent fail
+    }
+  }
 
   return (
     <>
@@ -76,6 +90,7 @@ export function MyEventsShell({ rows }: Props) {
                 key={row.rsvpId}
                 row={row}
                 onShowQr={() => setQrOpen(row.rsvpId)}
+                onCancel={() => handleCancel(row.rsvpId)}
               />
             ))}
           </div>
@@ -95,10 +110,13 @@ export function MyEventsShell({ rows }: Props) {
 function EventRow({
   row,
   onShowQr,
+  onCancel,
 }: {
   row: MyEventRow;
   onShowQr: () => void;
+  onCancel: () => void;
 }) {
+  const [confirmCancel, setConfirmCancel] = useState(false);
   const isPast = new Date(row.eventStartsAt) < new Date();
   const isCheckedIn = !!row.checkedInAt;
   const isCancelled = row.rsvpStatus === "cancelled";
@@ -224,6 +242,37 @@ function EventRow({
               <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           </Link>
+
+          {/* Remove RSVP — upcoming non-cancelled only */}
+          {!isCancelled && !isPast && (
+            confirmCancel ? (
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs text-white/40">Remove?</span>
+                <button
+                  onClick={() => { onCancel(); setConfirmCancel(false); }}
+                  className="text-xs font-bold text-red-400 hover:text-red-300 transition-colors px-2 py-1 rounded-lg bg-red-400/10 hover:bg-red-400/20"
+                >
+                  Yes
+                </button>
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  className="text-xs text-white/30 hover:text-white/60 transition-colors"
+                >
+                  No
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setConfirmCancel(true)}
+                title="Remove RSVP"
+                className="p-1.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-white/25 hover:text-red-400 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                  <path d="M3 6h18M8 6V4h8v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+            )
+          )}
         </div>
       </div>
     </div>

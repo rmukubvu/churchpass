@@ -2,19 +2,22 @@
 
 @theme {
   --color-brand: #4f46e5;
-  --color-surface: #0f0f0f;
-  --color-card: #1a1a1a;
-  --color-foreground: #fafafa;
-  --radius: 0.75rem;
+  --color-surface: #0a0a0f;
+  --color-card: #111118;
+  --color-foreground: #f8f8fa;
+  --radius: 0.625rem;
+  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
-  --background: #0f0f0f;
-  --foreground: #fafafa;
+  --background: #0a0a0f;
+  --foreground: #f8f8fa;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-feature-settings: "rlig" 1, "calt" 1;
+  font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }

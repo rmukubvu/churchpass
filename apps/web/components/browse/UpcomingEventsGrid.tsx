@@ -68,7 +68,7 @@ export function UpcomingEventsGrid({ rows: initialRows }: { rows: EventRow[] }) 
               "flex-none px-4 py-2 rounded-full text-sm font-medium transition-colors whitespace-nowrap",
               active === cat.value
                 ? "bg-indigo-600 text-white"
-                : "bg-[#1a1a1a] text-white/50 hover:text-white hover:bg-[#252525]"
+                : "bg-[#1a1a2e] border border-white/5 text-white/50 hover:text-white hover:bg-[#1e1e38]"
             )}
           >
             {cat.label}

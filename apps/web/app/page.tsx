@@ -20,7 +20,6 @@ async function fetchUpcomingEvents() {
       .orderBy(events.startsAt)
       .limit(24);
   } catch {
-    // Fallback to dev data when DB is unavailable (e.g. pending migration in dev)
     if (process.env.NODE_ENV === "development") {
       const now = new Date();
       return devEvents
@@ -35,17 +34,25 @@ export default async function HomePage() {
   const rows = await fetchUpcomingEvents();
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f]">
+    <div className="min-h-screen bg-[#0a0a0f]">
+      {/* Header sits on top of the hero (transparent until scroll) */}
       <SiteHeader />
       <FeaturedEventsBanner />
 
       {/* Upcoming events feed */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-white">Upcoming Events</h2>
-          <span className="text-sm text-white/30">
-            {rows.length > 0 ? `${rows.length} event${rows.length !== 1 ? "s" : ""}` : ""}
-          </span>
+      <section className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
+        <div className="flex items-end justify-between mb-8 gap-4">
+          <div>
+            <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-1.5">
+              All events · Free to attend
+            </p>
+            <h2 className="text-2xl font-extrabold text-white tracking-tight">Upcoming Events</h2>
+          </div>
+          {rows.length > 0 && (
+            <span className="text-sm text-white/25 font-medium flex-none">
+              {rows.length} event{rows.length !== 1 ? "s" : ""}
+            </span>
+          )}
         </div>
 
         <UpcomingEventsGrid rows={rows} />

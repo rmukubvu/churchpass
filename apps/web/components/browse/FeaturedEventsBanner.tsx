@@ -1,57 +1,64 @@
-import { HeroSearchBar } from "./HeroSearchBar";
-
-/** Hero banner with event search bar */
 export function FeaturedEventsBanner() {
   return (
-    <section className="relative overflow-hidden bg-[#0f0f0f]">
-      {/* Ambient glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-700/20 rounded-full blur-3xl" />
-        <div className="absolute top-20 left-1/4 w-[300px] h-[300px] bg-purple-700/10 rounded-full blur-3xl" />
-        <div className="absolute top-10 right-1/4 w-[250px] h-[250px] bg-indigo-900/15 rounded-full blur-3xl" />
-      </div>
+    <section className="relative overflow-hidden" style={{ minHeight: "420px" }}>
+      {/* Real photography background */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: "url('/header/ga2G2.jpg')" }}
+      />
 
-      <div className="relative max-w-4xl mx-auto px-4 sm:px-6 py-20 md:py-28 flex flex-col items-center text-center gap-6">
-        {/* Badge */}
-        <span className="inline-flex items-center gap-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 text-xs font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
-          <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-          Church Events Platform
-        </span>
+      {/* Dark overlay so text stays readable */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{ background: "rgba(0,0,0,0.45)" }}
+      />
 
-        {/* Headline */}
-        <h1 className="text-5xl md:text-6xl font-extrabold text-white leading-[1.05] tracking-tight max-w-2xl">
-          Your event.{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-            Your stay.
+      {/* Subtle indigo tint overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(160deg, rgba(13,11,30,0.5) 0%, rgba(42,20,85,0.35) 60%, transparent 100%)",
+        }}
+      />
+
+      {/* Bottom fade into page */}
+      <div
+        className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none"
+        style={{ background: "linear-gradient(to bottom, transparent, #0a0a0f)" }}
+      />
+
+      {/* Content — bottom-left aligned like Wander */}
+      <div
+        className="relative max-w-7xl mx-auto px-5 sm:px-8 flex flex-col justify-end"
+        style={{ paddingTop: "120px", paddingBottom: "52px", minHeight: "420px" }}
+      >
+        {/* Social proof badge — top left */}
+        <div className="absolute top-24 left-5 sm:left-8">
+          <span className="inline-flex items-center gap-2 text-xs font-semibold border border-white/15 rounded-full px-3.5 py-1.5"
+            style={{ background: "rgba(255,255,255,0.06)", color: "rgba(255,255,255,0.7)" }}>
+            <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
+            1,200+ events · 340 churches · Free to RSVP
+          </span>
+        </div>
+
+        {/* Headline — bottom left */}
+        <h1
+          className="font-extrabold text-white leading-[1.04] tracking-tight mb-3"
+          style={{ fontSize: "clamp(2.4rem, 5.5vw, 4rem)", maxWidth: "640px" }}
+        >
+          Find your{" "}
+          <span
+            className="text-transparent bg-clip-text"
+            style={{ backgroundImage: "linear-gradient(90deg, #a78bfa, #818cf8)" }}
+          >
+            next event
           </span>
         </h1>
 
-        <p className="text-white/50 text-base md:text-lg max-w-lg leading-relaxed">
-          Discover conferences and revivals happening near you — then find a place to stay, all in one place.
+        <p className="text-white/50 font-medium leading-relaxed" style={{ fontSize: "1rem", maxWidth: "480px" }}>
+          Church conferences, revivals, and retreats — discover and RSVP in seconds.
         </p>
-
-        {/* Search bar */}
-        <div className="w-full mt-2">
-          <HeroSearchBar />
-        </div>
-
-        {/* Step strip */}
-        <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-0 mt-2 text-white/30 text-xs font-medium">
-          <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold flex items-center justify-center">1</span>
-            Find your event
-          </span>
-          <span className="hidden sm:block mx-3 text-white/15">›</span>
-          <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold flex items-center justify-center">2</span>
-            RSVP in seconds
-          </span>
-          <span className="hidden sm:block mx-3 text-white/15">›</span>
-          <span className="flex items-center gap-2">
-            <span className="w-5 h-5 rounded-full bg-indigo-600/40 border border-indigo-500/40 text-indigo-300 text-[10px] font-bold flex items-center justify-center">3</span>
-            Book nearby stays
-          </span>
-        </div>
       </div>
     </section>
   );

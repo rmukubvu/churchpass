@@ -26,8 +26,7 @@ function haversineKm(
 }
 
 export function hotelPhotoUrl(photoRef: string, maxWidth = 400): string {
-  const key = process.env["GOOGLE_PLACES_API_KEY"];
-  return `https://maps.googleapis.com/maps/api/place/photo?maxwidth=${maxWidth}&photo_reference=${photoRef}&key=${key}`;
+  return `/api/hotel-photo?ref=${encodeURIComponent(photoRef)}&w=${maxWidth}`;
 }
 
 export async function searchNearbyHotels(

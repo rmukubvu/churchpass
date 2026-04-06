@@ -18,83 +18,57 @@ export function EventCard({ event, churchSlug, className }: EventCardProps) {
     <Link
       href={`/${churchSlug}/events/${event.id}`}
       className={cn(
-        "group relative flex flex-col h-full rounded-2xl overflow-hidden bg-[#1a1a1a] border border-white/5",
-        "hover:border-indigo-500/40 hover:shadow-lg hover:shadow-indigo-900/20",
+        "group relative flex flex-col h-full rounded-2xl overflow-hidden bg-[#1c1c30] border border-indigo-900/30",
+        "hover:-translate-y-1 hover:shadow-2xl hover:shadow-indigo-950/60 hover:border-indigo-700/40",
         "transition-all duration-200",
         className
       )}
     >
-      {/* Banner image */}
-      <div className="relative aspect-[16/9] w-full bg-[#252525] overflow-hidden">
-        {event.bannerUrl ? (
-          <>
-            <Image
-              src={event.bannerUrl}
-              alt={event.title}
-              fill
-              className="object-cover group-hover:scale-105 transition-transform duration-500"
-              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1a1a1a] via-transparent to-transparent opacity-60" />
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/40 via-[#252525] to-purple-900/20" />
-        )}
+      {/* Banner image — 4:3 for stronger visual presence */}
+      <div className="relative aspect-[4/3] w-full bg-[#1a1a28] overflow-hidden flex-none">
+        <Image
+          src={event.bannerUrl ?? "/banners/event_place_holder.jpg"}
+          alt={event.title}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+        />
+      </div>
 
-        {/* Date badge — top-left, like a ticket stub */}
-        <div className="absolute top-3 left-3 flex flex-col items-center bg-black/70 backdrop-blur-sm rounded-lg px-2.5 py-1.5 min-w-[44px] border border-white/10">
-          <span className="text-[10px] font-black uppercase text-indigo-400 leading-none tracking-wider">
-            {month}
+      {/* Info */}
+      <div className="flex flex-col flex-1 gap-2 px-4 py-3.5">
+        {/* Date + category row */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-indigo-400 uppercase tracking-wide">
+            {month} {day}
           </span>
-          <span className="text-xl font-black text-white leading-none mt-0.5">
-            {day}
-          </span>
-        </div>
-
-        {/* Category badge — top-right */}
-        <div className="absolute top-3 right-3">
-          <span className="text-[10px] font-semibold uppercase tracking-wider text-white/60 bg-black/50 backdrop-blur-sm border border-white/10 px-2 py-1 rounded-md">
+          <span className="text-[11px] font-semibold text-white/30 uppercase tracking-wider truncate">
             {CATEGORY_LABELS[event.category] ?? "Event"}
           </span>
         </div>
-      </div>
 
-      {/* Info — flex-1 so it fills remaining height, pushing CTA to bottom */}
-      <div className="flex flex-col flex-1 gap-2 p-4">
-        {/* Fixed 2-line slot: line-clamp-2 + min-h reserves space even for 1-line titles */}
-        <h3
-          className="font-bold text-white text-base leading-snug line-clamp-2 group-hover:text-indigo-300 transition-colors"
-          style={{ minHeight: "2.75rem" }}
-        >
+        {/* Title */}
+        <h3 className="font-bold text-white text-[15px] leading-snug line-clamp-2 group-hover:text-indigo-200 transition-colors">
           {event.title}
         </h3>
 
-        <div className="flex flex-col gap-1">
-          {event.location && (
-            <p className="text-xs text-white/40 truncate flex items-center gap-1">
-              <svg className="w-3 h-3 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              </svg>
-              {event.location}
-            </p>
-          )}
-          {event.capacity && (
-            <p className="text-xs text-white/30 flex items-center gap-1">
-              <svg className="w-3 h-3 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
-              </svg>
-              {event.capacity.toLocaleString()} capacity
-            </p>
-          )}
-        </div>
+        {/* Location */}
+        {event.location && (
+          <p className="text-xs text-white/35 truncate flex items-center gap-1 mt-0.5">
+            <svg className="w-3 h-3 flex-none" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            </svg>
+            {event.location}
+          </p>
+        )}
 
-        {/* RSVP CTA — pinned to bottom via mt-auto */}
-        <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
-          <span className="text-xs text-white/30 uppercase tracking-wider font-medium">
-            {event.rsvpRequired ? "RSVP required" : "Free entry"}
+        {/* CTA footer */}
+        <div className="mt-auto pt-3 flex items-center justify-between">
+          <span className="text-xs font-semibold text-white/25 uppercase tracking-wider">
+            {event.rsvpRequired ? "RSVP" : "Free entry"}
           </span>
-          <span className="text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 transition-colors">
-            Get tickets →
+          <span className="text-xs font-bold text-indigo-400 group-hover:text-indigo-300 transition-colors">
+            View →
           </span>
         </div>
       </div>
