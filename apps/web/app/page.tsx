@@ -2,6 +2,7 @@ import { db } from "@/server/db";
 import { events, churches } from "@sanctuary/db";
 import { eq, and, gte } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
+import { SiteFooter } from "@/components/layout/SiteFooter";
 import { FeaturedEventsBanner } from "@/components/browse/FeaturedEventsBanner";
 import { UpcomingEventsGrid } from "@/components/browse/UpcomingEventsGrid";
 import { devEvents, devChurch } from "@/lib/dev-data";
@@ -18,7 +19,7 @@ async function fetchUpcomingEvents() {
       .innerJoin(churches, eq(events.churchId, churches.id))
       .where(and(eq(events.isPublic, true), gte(events.startsAt, new Date())))
       .orderBy(events.startsAt)
-      .limit(24);
+      .limit(12);
   } catch {
     if (process.env.NODE_ENV === "development") {
       const now = new Date();
@@ -57,6 +58,8 @@ export default async function HomePage() {
 
         <UpcomingEventsGrid rows={rows} />
       </section>
+
+      <SiteFooter />
     </div>
   );
 }
