@@ -50,7 +50,7 @@ export function UpcomingEventsGrid({ rows: initialRows }: { rows: EventRow[] }) 
       event: {
         ...row.event,
         startsAt: new Date(row.event.startsAt),
-        endsAt: row.event.endsAt ? new Date(row.event.endsAt) : null,
+        endsAt: new Date(row.event.endsAt),
         createdAt: new Date(row.event.createdAt),
       },
     }));
