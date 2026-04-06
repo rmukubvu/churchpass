@@ -1,6 +1,6 @@
 import { db } from "@/server/db";
 import { events, churches } from "@sanctuary/db";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, isNull } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { FeaturedEventsBanner } from "@/components/browse/FeaturedEventsBanner";
@@ -17,7 +17,7 @@ async function fetchUpcomingEvents() {
       })
       .from(events)
       .innerJoin(churches, eq(events.churchId, churches.id))
-      .where(and(eq(events.isPublic, true), gte(events.startsAt, new Date())))
+      .where(and(eq(events.isPublic, true), gte(events.startsAt, new Date()), isNull(events.parentEventId)))
       .orderBy(events.startsAt)
       .limit(12);
   } catch {
