@@ -1,20 +1,36 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, SignInButton } from "@clerk/nextjs";
+import { useAuth, useUser, SignInButton } from "@clerk/nextjs";
 import { trpc } from "@/lib/trpc-client";
+import { CheckoutModal } from "@/components/checkout/CheckoutModal";
+
+type Tier = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  earlyBirdPrice: number | null;
+  earlyBirdEndsAt: Date | null;
+};
 
 type RsvpButtonProps = {
   eventId: string;
   brandColour?: string;
+  /** Paid ticket tiers — when provided and non-empty, triggers checkout flow */
+  tiers?: Tier[];
 };
 
-export function RsvpButton({ eventId, brandColour = "#4F46E5" }: RsvpButtonProps) {
+export function RsvpButton({ eventId, brandColour = "#4F46E5", tiers = [] }: RsvpButtonProps) {
   const { isSignedIn } = useAuth();
+  const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  const [showCheckout, setShowCheckout] = useState(false);
 
-  async function handleRsvp() {
+  const isPaid = tiers.length > 0;
+
+  async function handleFreeRsvp() {
     setLoading(true);
     try {
       await trpc.rsvps.create.mutate({ eventId });
@@ -36,7 +52,6 @@ export function RsvpButton({ eventId, brandColour = "#4F46E5" }: RsvpButtonProps
 
   const style = {
     backgroundColor: brandColour,
-    "--hover-bg": brandColour + "cc",
   } as React.CSSProperties;
 
   if (!isSignedIn) {
@@ -46,15 +61,44 @@ export function RsvpButton({ eventId, brandColour = "#4F46E5" }: RsvpButtonProps
           className="w-full rounded-xl text-white font-bold py-4 text-base transition-opacity hover:opacity-90"
           style={style}
         >
-          RSVP — Sign in to register
+          {isPaid ? "Get Tickets — Sign in first" : "RSVP — Sign in to register"}
         </button>
       </SignInButton>
     );
   }
 
+  if (isPaid) {
+    const email = user?.primaryEmailAddress?.emailAddress ?? "";
+    const firstName = user?.firstName ?? "";
+    const lastName = user?.lastName ?? "";
+
+    return (
+      <>
+        <button
+          onClick={() => setShowCheckout(true)}
+          className="w-full rounded-xl text-white font-bold py-4 text-base transition-opacity hover:opacity-90"
+          style={style}
+        >
+          Get Tickets
+        </button>
+
+        {showCheckout && (
+          <CheckoutModal
+            eventId={eventId}
+            tiers={tiers}
+            brandColour={brandColour}
+            userInfo={{ email, firstName, lastName }}
+            onSuccess={() => { setShowCheckout(false); setDone(true); }}
+            onClose={() => setShowCheckout(false)}
+          />
+        )}
+      </>
+    );
+  }
+
   return (
     <button
-      onClick={handleRsvp}
+      onClick={handleFreeRsvp}
       disabled={loading}
       className="w-full rounded-xl text-white font-bold py-4 text-base transition-opacity hover:opacity-90 disabled:opacity-50"
       style={style}

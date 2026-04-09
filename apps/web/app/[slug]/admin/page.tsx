@@ -99,15 +99,35 @@ export default async function AdminOverviewPage({ params }: Props) {
               {eventRows.length} events · {totalRsvps} total RSVPs
             </p>
           </div>
-          <Link
-            href={`/${slug}/admin/events/new`}
-            className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
-              <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-            </svg>
-            New event
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/${slug}/admin/analytics`}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <svg viewBox="0 0 20 20" className="w-4 h-4 fill-current">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zm6-4a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zm6-3a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
+              </svg>
+              Analytics
+            </Link>
+            <Link
+              href={`/${slug}/admin/stripe`}
+              className="flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                <path d="M13.976 9.15c-2.172-.806-3.356-1.426-3.356-2.409 0-.831.683-1.305 1.901-1.305 2.227 0 4.515.858 6.09 1.631l.89-5.494C18.252.975 15.697 0 12.165 0 9.667 0 7.589.654 6.104 1.872 4.56 3.147 3.757 4.992 3.757 7.218c0 4.039 2.467 5.76 6.476 7.219 2.585.92 3.445 1.574 3.445 2.583 0 .98-.84 1.545-2.354 1.545-1.875 0-4.965-.921-6.99-2.109l-.9 5.555C5.175 22.99 8.385 24 11.714 24c2.641 0 4.843-.624 6.328-1.813 1.664-1.305 2.525-3.236 2.525-5.732 0-4.128-2.524-5.851-6.594-7.305h.003z" />
+              </svg>
+              Payments
+            </Link>
+            <Link
+              href={`/${slug}/admin/events/new`}
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              <svg className="w-4 h-4" viewBox="0 0 16 16" fill="none">
+                <path d="M8 2v12M2 8h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+              New event
+            </Link>
+          </div>
         </div>
 
         {/* Stats strip */}

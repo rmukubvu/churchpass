@@ -297,4 +297,98 @@ export const eventsRouter = router({
         .returning();
       return updated;
     }),
+
+  /**
+   * Generate child occurrences from a recurring parent event.
+   * Idempotent: skips dates that already have a child event.
+   */
+  generateRecurring: protectedProcedure
+    .input(z.object({ parentEventId: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      const [parent] = await ctx.db
+        .select()
+        .from(events)
+        .where(eq(events.id, input.parentEventId))
+        .limit(1);
+
+      if (!parent) throw new Error("Event not found");
+      if (!parent.isRecurring || !parent.recurringFrequency) {
+        throw new Error("Event is not recurring");
+      }
+
+      // How many ms to advance per occurrence
+      const intervalMs =
+        parent.recurringFrequency === "weekly" ? 7 * 86_400_000 :
+        parent.recurringFrequency === "biweekly" ? 14 * 86_400_000 :
+        30 * 86_400_000; // monthly (approx)
+
+      const durationMs = parent.endsAt.getTime() - parent.startsAt.getTime();
+
+      // Determine how many occurrences to generate
+      const maxOccurrences = parent.recurringEndsAfter ?? 52; // default: 1 year
+      const hardStop = parent.recurringEndsAt ?? new Date(Date.now() + 365 * 86_400_000);
+
+      // Existing children
+      const existing = await ctx.db
+        .select({ startsAt: events.startsAt })
+        .from(events)
+        .where(eq(events.parentEventId, parent.id));
+
+      const existingTimes = new Set(existing.map((e) => e.startsAt.getTime()));
+
+      const toInsert: typeof events.$inferInsert[] = [];
+      let cursor = parent.startsAt.getTime();
+
+      for (let i = 0; i < maxOccurrences; i++) {
+        cursor += intervalMs;
+        const start = new Date(cursor);
+        if (start > hardStop) break;
+        if (existingTimes.has(start.getTime())) continue;
+
+        toInsert.push({
+          churchId: parent.churchId,
+          parentEventId: parent.id,
+          title: parent.title,
+          description: parent.description,
+          bannerUrl: parent.bannerUrl,
+          category: parent.category,
+          location: parent.location,
+          latitude: parent.latitude,
+          longitude: parent.longitude,
+          locationType: parent.locationType,
+          timezone: parent.timezone,
+          startsAt: start,
+          endsAt: new Date(start.getTime() + durationMs),
+          capacity: parent.capacity,
+          rsvpRequired: parent.rsvpRequired,
+          ticketType: parent.ticketType,
+          isPublic: parent.isPublic,
+          visibility: parent.visibility,
+        });
+      }
+
+      if (toInsert.length === 0) return [];
+      return ctx.db.insert(events).values(toInsert).returning();
+    }),
+
+  /** Toggle featured status on an event (admin only) */
+  setFeatured: protectedProcedure
+    .input(z.object({
+      eventId: z.string(),
+      /** Duration in days — 0 removes featured status */
+      durationDays: z.number().int().min(0).max(90),
+      /** Sort position in the slider (1–5) */
+      sortOrder: z.number().int().min(1).max(5).optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const featuredUntil = input.durationDays > 0
+        ? new Date(Date.now() + input.durationDays * 86_400_000)
+        : null;
+      const [updated] = await ctx.db
+        .update(events)
+        .set({ featuredUntil, featuredOrder: input.durationDays > 0 ? (input.sortOrder ?? 1) : null })
+        .where(eq(events.id, input.eventId))
+        .returning();
+      return updated;
+    }),
 });

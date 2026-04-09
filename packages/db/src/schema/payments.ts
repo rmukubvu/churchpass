@@ -18,7 +18,7 @@ export const payments = pgTable("payments", {
     .references(() => rsvps.id, { onDelete: "cascade" }),
 
   stripePaymentIntentId: text("stripe_payment_intent_id").unique(),
-  stripeAccountId: text("stripe_account_id").notNull(), // church's connected account
+  stripeAccountId: text("stripe_account_id"), // church's connected account
 
   amountTotal: integer("amount_total").notNull(),  // cents — what attendee paid
   amountFee: integer("amount_fee").notNull(),       // cents — platform 2% cut

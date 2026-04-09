@@ -6,6 +6,7 @@ import { attendeesRouter } from "./routers/attendees";
 import { accommodationsRouter } from "./routers/accommodations";
 import { waitlistRouter } from "./routers/waitlist";
 import { ticketTiersRouter } from "./routers/ticket-tiers";
+import { paymentsRouter } from "./routers/payments";
 
 export const appRouter = router({
   events: eventsRouter,
@@ -15,6 +16,7 @@ export const appRouter = router({
   accommodations: accommodationsRouter,
   waitlist: waitlistRouter,
   ticketTiers: ticketTiersRouter,
+  payments: paymentsRouter,
 });
 
 export type AppRouter = typeof appRouter;

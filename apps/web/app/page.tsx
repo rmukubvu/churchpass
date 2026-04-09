@@ -3,12 +3,48 @@ export const revalidate = 300;
 
 import { db } from "@/server/db";
 import { events, churches } from "@sanctuary/db";
-import { eq, and, gte, isNull } from "drizzle-orm";
+import { eq, and, gte, isNull, isNotNull } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { FeaturedEventsBanner } from "@/components/browse/FeaturedEventsBanner";
 import { UpcomingEventsGrid } from "@/components/browse/UpcomingEventsGrid";
+import { FeaturedSlider, type FeaturedEvent } from "@/components/browse/FeaturedSlider";
 import { devEvents, devChurch } from "@/lib/dev-data";
+
+async function fetchFeaturedEvents(): Promise<FeaturedEvent[]> {
+  try {
+    const now = new Date();
+    const rows = await db
+      .select({
+        id: events.id,
+        title: events.title,
+        bannerUrl: events.bannerUrl,
+        startsAt: events.startsAt,
+        location: events.location,
+        category: events.category,
+        churchSlug: churches.slug,
+        churchName: churches.name,
+        brandColour: churches.brandColour,
+      })
+      .from(events)
+      .innerJoin(churches, eq(events.churchId, churches.id))
+      .where(
+        and(
+          eq(events.isPublic, true),
+          eq(events.isDraft, false),
+          gte(events.startsAt, now),
+          isNull(events.parentEventId),
+          isNotNull(events.featuredUntil),
+          gte(events.featuredUntil, now),
+        )
+      )
+      .orderBy(events.featuredOrder)
+      .limit(5);
+    return rows.map((r) => ({ ...r, brandColour: r.brandColour ?? "#4F46E5" }));
+  } catch {
+    return [];
+  }
+}
 
 async function fetchUpcomingEvents() {
   try {
@@ -35,13 +71,23 @@ async function fetchUpcomingEvents() {
 }
 
 export default async function HomePage() {
-  const rows = await fetchUpcomingEvents();
+  const [rows, featuredEvents] = await Promise.all([
+    fetchUpcomingEvents(),
+    fetchFeaturedEvents(),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
       {/* Header sits on top of the hero (transparent until scroll) */}
       <SiteHeader />
       <FeaturedEventsBanner />
+
+      {/* Featured events slider */}
+      {featuredEvents.length > 0 && (
+        <section className="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-2">
+          <FeaturedSlider events={featuredEvents} />
+        </section>
+      )}
 
       {/* Upcoming events feed */}
       <section className="max-w-7xl mx-auto px-5 sm:px-8 py-10">
