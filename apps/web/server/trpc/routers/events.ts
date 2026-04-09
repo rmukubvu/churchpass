@@ -1,8 +1,15 @@
 import { z } from "zod";
-import { eq, and, gte, desc, ilike, or, isNull, sql } from "drizzle-orm";
+import { eq, and, gte, ilike, isNull, sql } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../init";
 import { events, churches } from "@sanctuary/db";
 import { geocodeAddress } from "@/lib/geocode";
+import { createId } from "@sanctuary/db";
+
+const categoryEnum = z.enum(["worship", "conference", "outreach", "youth", "family", "other"]);
+const locationTypeEnum = z.enum(["in_person", "virtual", "hybrid"]);
+const ticketTypeEnum = z.enum(["free", "paid", "donation"]);
+const processingFeeModeEnum = z.enum(["absorb", "pass"]);
+const recurringFrequencyEnum = z.enum(["weekly", "biweekly", "monthly"]);
 
 export const eventsRouter = router({
   list: publicProcedure
@@ -15,13 +22,13 @@ export const eventsRouter = router({
       })
     )
     .query(async ({ ctx, input }) => {
-      const church = await ctx.db
+      const [church] = await ctx.db
         .select()
         .from(churches)
         .where(eq(churches.slug, input.churchSlug))
         .limit(1);
 
-      if (!church[0]) return [];
+      if (!church) return [];
 
       const now = new Date();
       return ctx.db
@@ -29,8 +36,9 @@ export const eventsRouter = router({
         .from(events)
         .where(
           and(
-            eq(events.churchId, church[0].id),
+            eq(events.churchId, church.id),
             eq(events.isPublic, true),
+            eq(events.isDraft, false),
             isNull(events.parentEventId),
             input.upcoming ? gte(events.startsAt, now) : undefined
           )
@@ -43,15 +51,26 @@ export const eventsRouter = router({
   get: publicProcedure
     .input(z.object({ eventId: z.string() }))
     .query(async ({ ctx, input }) => {
-      const result = await ctx.db
+      const [event] = await ctx.db
         .select()
         .from(events)
         .where(eq(events.id, input.eventId))
         .limit(1);
-      return result[0] ?? null;
+      return event ?? null;
     }),
 
-  /** Fetch all sessions for a parent event, ordered by start time */
+  /** Resolve a private event by its secret token */
+  getByToken: publicProcedure
+    .input(z.object({ token: z.string() }))
+    .query(async ({ ctx, input }) => {
+      const [event] = await ctx.db
+        .select()
+        .from(events)
+        .where(eq(events.secretToken, input.token))
+        .limit(1);
+      return event ?? null;
+    }),
+
   sessions: publicProcedure
     .input(z.object({ parentEventId: z.string() }))
     .query(async ({ ctx, input }) => {
@@ -62,7 +81,6 @@ export const eventsRouter = router({
         .orderBy(events.startsAt);
     }),
 
-  /** All upcoming public events across every church — for home feed */
   upcomingAll: publicProcedure
     .input(z.object({
       limit: z.number().int().min(1).max(48).default(12),
@@ -78,13 +96,40 @@ export const eventsRouter = router({
         })
         .from(events)
         .innerJoin(churches, eq(events.churchId, churches.id))
-        .where(and(eq(events.isPublic, true), gte(events.startsAt, now), isNull(events.parentEventId)))
+        .where(and(
+          eq(events.isPublic, true),
+          eq(events.isDraft, false),
+          gte(events.startsAt, now),
+          isNull(events.parentEventId),
+        ))
         .orderBy(events.startsAt)
         .limit(input.limit)
         .offset(input.offset);
     }),
 
-  /** Full-text search across all churches, with optional city filter */
+  /** Featured events for the homepage ad slider */
+  featured: publicProcedure
+    .query(async ({ ctx }) => {
+      const now = new Date();
+      return ctx.db
+        .select({
+          event: events,
+          churchSlug: churches.slug,
+          churchName: churches.name,
+        })
+        .from(events)
+        .innerJoin(churches, eq(events.churchId, churches.id))
+        .where(and(
+          eq(events.isPublic, true),
+          eq(events.isDraft, false),
+          gte(events.startsAt, now),
+          isNull(events.parentEventId),
+          sql`${events.featuredUntil} > now()`,
+        ))
+        .orderBy(events.featuredOrder)
+        .limit(5);
+    }),
+
   search: publicProcedure
     .input(
       z.object({
@@ -99,10 +144,10 @@ export const eventsRouter = router({
 
       const conditions = [
         eq(events.isPublic, true),
+        eq(events.isDraft, false),
         gte(events.startsAt, now),
-        q
-          ? sql`${events.searchVector} @@ plainto_tsquery('english', ${q})`
-          : undefined,
+        isNull(events.parentEventId),
+        q ? sql`${events.searchVector} @@ plainto_tsquery('english', ${q})` : undefined,
         city ? ilike(events.location, `%${city}%`) : undefined,
       ].filter(Boolean) as Parameters<typeof and>;
 
@@ -125,17 +170,54 @@ export const eventsRouter = router({
         churchId: z.string(),
         title: z.string().min(1).max(200),
         description: z.string().optional(),
+        bannerUrl: z.string().url().optional(),
+        category: categoryEnum.default("other"),
+        tags: z.array(z.string()).optional().default([]),
+        conditions: z.string().optional(),
+
+        // Visibility
+        visibility: z.enum(["public", "private"]).default("public"),
+        isDraft: z.boolean().default(false),
+
+        // Location
+        locationType: locationTypeEnum.default("in_person"),
         location: z.string().optional(),
-        category: z
-          .enum(["worship", "conference", "outreach", "youth", "family", "other"])
-          .default("other"),
+        locationDirections: z.string().optional(),
+        locationUrl: z.string().url().optional(),
+        locationTbd: z.boolean().default(false),
+
+        // Dates
+        timezone: z.string().default("UTC"),
         startsAt: z.date(),
         endsAt: z.date(),
+
+        // Recurring
+        isRecurring: z.boolean().default(false),
+        recurringFrequency: recurringFrequencyEnum.optional(),
+        recurringEndsAt: z.date().optional(),
+        recurringEndsAfter: z.number().int().positive().optional(),
+
+        // Parent (session)
+        parentEventId: z.string().optional(),
+
+        // Capacity & waitlist
         capacity: z.number().int().positive().optional(),
-        conditions: z.string().optional(),
+        waitlistEnabled: z.boolean().default(false),
+        waitlistCapacity: z.number().int().positive().optional(),
+        waitlistAutoPromote: z.boolean().default(true),
+
+        // RSVP
         rsvpRequired: z.boolean().default(true),
         isPublic: z.boolean().default(true),
-        bannerUrl: z.string().url().optional(),
+
+        // Ticketing
+        ticketType: ticketTypeEnum.default("free"),
+        processingFeeMode: processingFeeModeEnum.default("absorb"),
+        donationMinimum: z.number().int().positive().optional(),
+        donationSuggestedAmounts: z.array(z.number().int().positive()).optional().default([]),
+        refundPolicy: z.enum(["none", "full", "custom"]).optional(),
+        refundDays: z.number().int().positive().optional(),
+        refundPolicyDetails: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -144,9 +226,13 @@ export const eventsRouter = router({
         const geo = await geocodeAddress(input.location).catch(() => null);
         if (geo) coords = { latitude: geo.lat, longitude: geo.lng };
       }
+
+      // Generate secret token for private events
+      const secretToken = input.visibility === "private" ? createId() : undefined;
+
       const [event] = await ctx.db
         .insert(events)
-        .values({ ...input, ...coords })
+        .values({ ...input, ...coords, secretToken })
         .returning();
       return event;
     }),
@@ -157,16 +243,44 @@ export const eventsRouter = router({
         eventId: z.string(),
         title: z.string().min(1).max(200).optional(),
         description: z.string().optional(),
+        bannerUrl: z.string().url().optional(),
+        category: categoryEnum.optional(),
+        tags: z.array(z.string()).optional(),
         conditions: z.string().optional(),
+
+        visibility: z.enum(["public", "private"]).optional(),
+        isDraft: z.boolean().optional(),
+
+        locationType: locationTypeEnum.optional(),
         location: z.string().optional(),
-        category: z
-          .enum(["worship", "conference", "outreach", "youth", "family", "other"])
-          .optional(),
+        locationDirections: z.string().optional(),
+        locationUrl: z.string().url().optional(),
+        locationTbd: z.boolean().optional(),
+
+        timezone: z.string().optional(),
         startsAt: z.date().optional(),
         endsAt: z.date().optional(),
+
+        isRecurring: z.boolean().optional(),
+        recurringFrequency: recurringFrequencyEnum.optional(),
+        recurringEndsAt: z.date().optional(),
+        recurringEndsAfter: z.number().int().positive().optional(),
+
         capacity: z.number().int().positive().optional(),
+        waitlistEnabled: z.boolean().optional(),
+        waitlistCapacity: z.number().int().positive().optional(),
+        waitlistAutoPromote: z.boolean().optional(),
+
         rsvpRequired: z.boolean().optional(),
         isPublic: z.boolean().optional(),
+
+        ticketType: ticketTypeEnum.optional(),
+        processingFeeMode: processingFeeModeEnum.optional(),
+        donationMinimum: z.number().int().positive().optional(),
+        donationSuggestedAmounts: z.array(z.number().int().positive()).optional(),
+        refundPolicy: z.enum(["none", "full", "custom"]).optional(),
+        refundDays: z.number().int().positive().optional(),
+        refundPolicyDetails: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {

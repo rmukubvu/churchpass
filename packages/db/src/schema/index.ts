@@ -4,3 +4,6 @@ export * from "./events";
 export * from "./rsvps";
 export * from "./checkins";
 export * from "./family-units";
+export * from "./ticket-tiers";
+export * from "./waitlist";
+export * from "./payments";
