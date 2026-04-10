@@ -43,34 +43,14 @@ export function SiteFooter() {
           </p>
         </div>
 
-        {/* About */}
+        {/* Discover */}
         <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">About</p>
-          <ul className="space-y-3">
-            {[
-              { label: "Our Story",   href: "/about" },
-              { label: "Blog",        href: "/blog" },
-              { label: "Contact Us",  href: "/contact" },
-              { label: "Careers",     href: "/careers" },
-            ].map(({ label, href }) => (
-              <li key={label}>
-                <Link href={href} className="text-sm text-white/45 hover:text-white transition-colors">
-                  {label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        {/* Resources */}
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Resources</p>
+          <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Discover</p>
           <ul className="space-y-3">
             {[
               { label: "Browse Events", href: "/" },
-              { label: "Help Center",   href: "/help" },
-              { label: "Download App",  href: "/app" },
-              { label: "Legal",         href: "/legal" },
+              { label: "My Events",     href: "/my-events" },
+              { label: "Contact Us",    href: "/contact" },
             ].map(({ label, href }) => (
               <li key={label}>
                 <Link href={href} className="text-sm text-white/45 hover:text-white transition-colors">
@@ -86,9 +66,25 @@ export function SiteFooter() {
           <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">For Churches</p>
           <ul className="space-y-3">
             {[
-              { label: "List Your Church",   href: "/register" },
-              { label: "Church Dashboard",   href: "/admin" },
-              { label: "Event Management",   href: "/register" },
+              { label: "Register Your Church", href: "/register" },
+              { label: "Church Dashboard",     href: "/admin" },
+            ].map(({ label, href }) => (
+              <li key={label}>
+                <Link href={href} className="text-sm text-white/45 hover:text-white transition-colors">
+                  {label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Advertise */}
+        <div>
+          <p className="text-xs font-bold uppercase tracking-widest text-white/30 mb-4">Advertising</p>
+          <ul className="space-y-3">
+            {[
+              { label: "Advertise with Us", href: "/advertise" },
+              { label: "Pricing",           href: "/advertise#pricing" },
             ].map(({ label, href }) => (
               <li key={label}>
                 <Link href={href} className="text-sm text-white/45 hover:text-white transition-colors">
