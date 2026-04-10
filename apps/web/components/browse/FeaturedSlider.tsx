@@ -6,6 +6,15 @@ import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/lib/constants";
 
+// Fallback church atmosphere backgrounds used when an event has no banner
+const FALLBACK_IMAGES = [
+  "/banners/church-bg-1.jpg",
+  "/banners/church-bg-2.jpg",
+  "/banners/church-bg-3.jpg",
+  "/banners/church-bg-4.jpg",
+  "/banners/church-bg-5.jpg",
+];
+
 export type FeaturedEvent = {
   id: string;
   title: string;
@@ -42,6 +51,8 @@ export function FeaturedSlider({ events }: Props) {
   if (total === 0) return null;
 
   const event = events[active]!;
+  // Each event without a banner gets a consistent fallback based on its index
+  const bgImage = event.bannerUrl ?? FALLBACK_IMAGES[active % FALLBACK_IMAGES.length]!;
 
   return (
     <div
@@ -49,28 +60,19 @@ export function FeaturedSlider({ events }: Props) {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {/* Background image or gradient */}
+      {/* Background image — always use a real photo */}
       <div className="relative aspect-[21/9] sm:aspect-[3/1] overflow-hidden">
-        {event.bannerUrl ? (
-          <Image
-            key={event.id}
-            src={event.bannerUrl}
-            alt={event.title}
-            fill
-            className="object-cover transition-opacity duration-700"
-            priority
-          />
-        ) : (
-          <div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(135deg, ${event.brandColour}33 0%, #0a0a0f 100%)`,
-            }}
-          />
-        )}
+        <Image
+          key={event.id}
+          src={bgImage}
+          alt={event.title}
+          fill
+          className="object-cover transition-opacity duration-700"
+          priority
+        />
 
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+        {/* Dark overlay — stronger bottom so text is always readable */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-black/10" />
 
         {/* Content */}
         <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
