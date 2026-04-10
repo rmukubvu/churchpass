@@ -39,6 +39,14 @@ export const devChurch: Church = {
   twitterHandle: null,
   facebookHandle: null,
   youtubeHandle: null,
+  fbPageId: null,
+  fbPageName: null,
+  fbPageAccessToken: null,
+  fbUserAccessToken: null,
+  fbTokenExpiresAt: null,
+  igAccountId: null,
+  autoPostFacebook: false,
+  autoPostInstagram: false,
   createdAt: new Date("2025-01-01T00:00:00Z"),
 };
 

@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, pgEnum, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, pgEnum, integer, boolean } from "drizzle-orm/pg-core";
 import { createId } from "../utils/id";
 
 export const churchPlanEnum = pgEnum("church_plan", [
@@ -58,6 +58,16 @@ export const churches = pgTable("churches", {
   // Stripe Connect — for paid ticket payouts
   stripeAccountId: text("stripe_account_id"),
   stripeConnectStatus: stripeConnectStatusEnum("stripe_connect_status"),
+
+  // Meta (Facebook + Instagram) social auto-posting
+  fbPageId: text("fb_page_id"),
+  fbPageName: text("fb_page_name"),
+  fbPageAccessToken: text("fb_page_access_token"),   // long-lived Page token (60 days)
+  fbUserAccessToken: text("fb_user_access_token"),   // long-lived User token for re-auth
+  fbTokenExpiresAt: timestamp("fb_token_expires_at", { withTimezone: true }),
+  igAccountId: text("ig_account_id"),                // IG Business Account ID linked to Page
+  autoPostFacebook: boolean("auto_post_facebook").notNull().default(false),
+  autoPostInstagram: boolean("auto_post_instagram").notNull().default(false),
 
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()

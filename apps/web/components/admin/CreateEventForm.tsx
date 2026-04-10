@@ -57,6 +57,7 @@ type TicketTierDraft = {
 type Props = {
   churchId: string;
   churchSlug: string;
+  hasSocialConnected?: boolean;
 };
 
 // ─── Shared field components ──────────────────────────────────────────────────
@@ -104,7 +105,7 @@ function Toggle({ label, description, checked, onChange }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function CreateEventForm({ churchId, churchSlug }: Props) {
+export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = false }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("basics");
   const [saving, setSaving] = useState(false);
@@ -150,6 +151,10 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
   const [refundPolicyDetails, setRefundPolicyDetails] = useState("");
   const [donationMinimum, setDonationMinimum] = useState("");
   const [donationPresets, setDonationPresets] = useState<number[]>(DONATION_PRESETS);
+
+  // Social sharing overrides (per-event)
+  const [shareFacebook, setShareFacebook] = useState(false);
+  const [shareInstagram, setShareInstagram] = useState(false);
 
   const currentStepIndex = STEPS.findIndex((s) => s.id === step);
 
@@ -203,6 +208,8 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
         refundPolicy: ticketType === "paid" ? refundPolicy : undefined,
         refundDays: refundPolicy === "full" && ticketType === "paid" ? parseInt(refundDays) : undefined,
         refundPolicyDetails: refundPolicy === "custom" ? refundPolicyDetails : undefined,
+        shareFacebook,
+        shareInstagram,
       });
 
       // For paid events, save ticket tiers
@@ -666,6 +673,49 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
             {waitlistEnabled && <ReviewRow label="Waitlist" value="Enabled" />}
             {isDraft && <ReviewRow label="Status" value="Draft (not published)" />}
           </div>
+
+          {/* Social sharing — only shown if church has connected social */}
+          {hasSocialConnected && !isDraft && visibility === "public" && (
+            <div className="rounded-2xl border border-indigo-500/15 bg-indigo-500/5 p-4 space-y-3">
+              <p className="text-xs font-bold text-indigo-400 uppercase tracking-widest">
+                Share on social when published
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded bg-[#1877F2] flex items-center justify-center text-[10px] text-white font-bold">f</div>
+                    <p className="text-sm text-white/70">Post to Facebook Page</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShareFacebook(!shareFacebook)}
+                    className={`relative flex-none w-10 h-5 rounded-full transition-colors ${shareFacebook ? "bg-indigo-600" : "bg-white/10"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${shareFacebook ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded bg-gradient-to-br from-[#f09433] to-[#bc1888] flex items-center justify-center text-[10px] text-white">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069z"/></svg>
+                    </div>
+                    <p className="text-sm text-white/70">Post to Instagram</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShareInstagram(!shareInstagram)}
+                    disabled={!bannerUrl}
+                    className={`relative flex-none w-10 h-5 rounded-full transition-colors disabled:opacity-30 ${shareInstagram && bannerUrl ? "bg-indigo-600" : "bg-white/10"}`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${shareInstagram && bannerUrl ? "translate-x-5" : "translate-x-0"}`} />
+                  </button>
+                </div>
+                {shareInstagram && !bannerUrl && (
+                  <p className="text-xs text-amber-400">⚠️ Add a banner image (Step 1) to enable Instagram sharing.</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

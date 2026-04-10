@@ -4,6 +4,7 @@ import { router, publicProcedure, protectedProcedure } from "../init";
 import { events, churches } from "@sanctuary/db";
 import { geocodeAddress } from "@/lib/geocode";
 import { createId } from "@sanctuary/db";
+import { postToFacebook, postToInstagram } from "@/lib/meta";
 
 const categoryEnum = z.enum(["worship", "conference", "outreach", "youth", "family", "other"]);
 const locationTypeEnum = z.enum(["in_person", "virtual", "hybrid"]);
@@ -218,6 +219,10 @@ export const eventsRouter = router({
         refundPolicy: z.enum(["none", "full", "custom"]).optional(),
         refundDays: z.number().int().positive().optional(),
         refundPolicyDetails: z.string().optional(),
+
+        // Social auto-posting overrides (per-event manual toggle)
+        shareFacebook: z.boolean().default(false),
+        shareInstagram: z.boolean().default(false),
       })
     )
     .mutation(async ({ ctx, input }) => {
@@ -230,10 +235,63 @@ export const eventsRouter = router({
       // Generate secret token for private events
       const secretToken = input.visibility === "private" ? createId() : undefined;
 
+      // Strip social flags before inserting (not DB columns)
+      const { shareFacebook, shareInstagram, ...eventData } = input;
+
       const [event] = await ctx.db
         .insert(events)
-        .values({ ...input, ...coords, secretToken })
+        .values({ ...eventData, ...coords, secretToken })
         .returning();
+
+      // ── Social auto-post (fire-and-forget, never blocks event creation) ──
+      if (event && !input.isDraft && input.visibility === "public" && process.env.META_APP_ID) {
+        const publishedEvent = event;
+        void (async () => {
+          try {
+            const [church] = await ctx.db
+              .select({
+                slug: churches.slug,
+                fbPageId: churches.fbPageId,
+                fbPageAccessToken: churches.fbPageAccessToken,
+                igAccountId: churches.igAccountId,
+                autoPostFacebook: churches.autoPostFacebook,
+                autoPostInstagram: churches.autoPostInstagram,
+              })
+              .from(churches)
+              .where(eq(churches.id, input.churchId))
+              .limit(1);
+
+            if (!church) return;
+
+            const shouldPostFb = (church.autoPostFacebook || shareFacebook) &&
+              !!church.fbPageId && !!church.fbPageAccessToken;
+
+            const shouldPostIg = (church.autoPostInstagram || shareInstagram) &&
+              !!church.igAccountId && !!church.fbPageAccessToken && !!publishedEvent.bannerUrl;
+
+            if (shouldPostFb) {
+              await postToFacebook(
+                church.fbPageId!,
+                church.fbPageAccessToken!,
+                publishedEvent,
+                church.slug,
+              ).catch((e: unknown) => console.error("[social] FB post failed", e));
+            }
+
+            if (shouldPostIg) {
+              await postToInstagram(
+                church.igAccountId!,
+                church.fbPageAccessToken!,
+                publishedEvent,
+                church.slug,
+              ).catch((e: unknown) => console.error("[social] IG post failed", e));
+            }
+          } catch (e) {
+            console.error("[social] auto-post error", e);
+          }
+        })();
+      }
+
       return event;
     }),
 

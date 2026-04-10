@@ -9,6 +9,7 @@ import { ticketTiersRouter } from "./routers/ticket-tiers";
 import { paymentsRouter } from "./routers/payments";
 import { adsRouter } from "./routers/ads";
 import { providersRouter } from "./routers/providers";
+import { socialRouter } from "./routers/social";
 
 export const appRouter = router({
   events: eventsRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   payments: paymentsRouter,
   ads: adsRouter,
   providers: providersRouter,
+  social: socialRouter,
 });
 
 export type AppRouter = typeof appRouter;

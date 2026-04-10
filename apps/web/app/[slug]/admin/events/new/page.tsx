@@ -24,14 +24,14 @@ export default async function NewEventPage({ params }: Props) {
   let church;
   try {
     const [found] = await db
-      .select({ id: churches.id, name: churches.name, slug: churches.slug, brandColour: churches.brandColour })
+      .select({ id: churches.id, name: churches.name, slug: churches.slug, brandColour: churches.brandColour, fbPageId: churches.fbPageId })
       .from(churches)
       .where(eq(churches.slug, slug))
       .limit(1);
     church = found;
   } catch {
     // Dev fallback
-    church = { id: "dev-church-1", name: "Koinonia", slug, brandColour: "#4F46E5" };
+    church = { id: "dev-church-1", name: "Koinonia", slug, brandColour: "#4F46E5", fbPageId: null };
   }
 
   if (!church) notFound();
@@ -75,7 +75,11 @@ export default async function NewEventPage({ params }: Props) {
 
         {/* Card */}
         <div className="bg-[#1a1a1a] border border-white/5 rounded-2xl p-6 sm:p-8">
-          <CreateEventForm churchId={church.id} churchSlug={slug} />
+          <CreateEventForm
+            churchId={church.id}
+            churchSlug={slug}
+            hasSocialConnected={!!church.fbPageId}
+          />
         </div>
       </div>
     </div>
