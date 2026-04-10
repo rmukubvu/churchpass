@@ -83,7 +83,7 @@ export default async function AttendeesPage({ params }: Props) {
     <div className="min-h-screen bg-[#0f0f0f]">
       <SiteHeader />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-[88px] pb-10">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-white/30 mb-6">
           <Link href={`/${slug}/admin`} className="hover:text-white/60 transition-colors">

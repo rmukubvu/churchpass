@@ -68,7 +68,7 @@ export default async function CheckInPage({ params }: Props) {
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col">
       <SiteHeader />
 
-      <div className="flex-1 flex items-center justify-center px-4 py-12">
+      <div className="flex-1 flex items-center justify-center px-4 pt-[88px] pb-12">
         <div className="w-full max-w-sm">
 
           {/* Card */}

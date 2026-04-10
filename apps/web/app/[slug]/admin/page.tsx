@@ -87,7 +87,7 @@ export default async function AdminOverviewPage({ params }: Props) {
     <div className="min-h-screen bg-[#0f0f0f]">
       <SiteHeader />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pt-[88px] pb-10">
         {/* Header */}
         <div className="flex items-start justify-between mb-8">
           <div>

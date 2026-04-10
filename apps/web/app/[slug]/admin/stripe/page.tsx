@@ -37,7 +37,7 @@ export default async function AdminStripePage({ params, searchParams }: Props) {
     <div className="min-h-screen bg-[#0a0a0f]">
       <SiteHeader />
 
-      <main className="max-w-2xl mx-auto px-5 py-12 space-y-8">
+      <main className="max-w-2xl mx-auto px-5 pt-[88px] pb-12 space-y-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-xs text-white/40">
           <Link href={`/${slug}/admin`} className="hover:text-white/70 transition-colors">Admin</Link>

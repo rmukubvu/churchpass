@@ -21,7 +21,7 @@ export default async function RegisterPage() {
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
       <SiteHeader />
-      <main className="px-4 py-16">
+      <main className="px-4 pt-[88px] pb-16">
         <div className="max-w-lg mx-auto">
           <div className="text-center mb-10">
             <div className="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center mx-auto mb-4">

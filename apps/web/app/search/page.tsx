@@ -88,8 +88,8 @@ export default async function SearchPage({ searchParams }: Props) {
     <div className="min-h-screen bg-[#0f0f0f]">
       <SiteHeader />
 
-      {/* Search header */}
-      <section className="border-b border-white/5 bg-[#0f0f0f]/80 backdrop-blur-sm sticky top-0 z-40 py-4">
+      {/* Search header — sticky below the fixed SiteHeader */}
+      <section className="border-b border-white/5 bg-[#0f0f0f]/80 backdrop-blur-sm sticky top-[72px] z-40 py-4 mt-[72px]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6">
           <HeroSearchBar />
         </div>
