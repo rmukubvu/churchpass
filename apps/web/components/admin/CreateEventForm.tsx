@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BannerUpload } from "./BannerUpload";
 import { LocationAutocomplete } from "./LocationAutocomplete";
+import { LocalServicesPanel } from "./LocalServicesPanel";
 import { trpc } from "@/lib/trpc-client";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -406,6 +407,11 @@ export function CreateEventForm({ churchId, churchSlug }: Props) {
               <input value={locationUrl} onChange={(e) => setLocationUrl(e.target.value)}
                 placeholder="https://zoom.us/j/..." className={inputClass} />
             </Field>
+          )}
+
+          {/* Local service providers near the event city */}
+          {(locationType === "in_person" || locationType === "hybrid") && !locationTbd && location && (
+            <LocalServicesPanel city={location.split(",").slice(-2, -1)[0]?.trim() ?? location.split(",")[0]?.trim() ?? ""} />
           )}
         </div>
       )}

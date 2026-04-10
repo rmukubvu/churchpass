@@ -9,3 +9,4 @@ export * from "./family-units";
 export * from "./ticket-tiers";
 export * from "./waitlist";
 export * from "./payments";
+export * from "./service-providers";

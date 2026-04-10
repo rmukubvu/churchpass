@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AccountType = "org" | "individual" | null;
+type AccountType = "org" | "individual" | "provider" | null;
 
 type OrgData = {
   // Step 1 — basics
@@ -31,6 +31,22 @@ type OrgData = {
   locationType: "physical" | "virtual" | "both";
   publicEmail: string;
   publicPhone: string;
+};
+
+type ProviderData = {
+  businessName: string;
+  slug: string;
+  slugManual: boolean;
+  category: string;
+  description: string;
+  city: string;
+  country: string;
+  contactEmail: string;
+  contactPhone: string;
+  website: string;
+  instagramHandle: string;
+  priceFrom: string;
+  serviceRadius: string;
 };
 
 type IndividualData = {
@@ -63,6 +79,20 @@ const CONGREGATION_SIZES = ["1–50", "51–200", "201–500", "501–1,000", "1
 const LANGUAGES = ["English", "French", "Spanish", "Portuguese", "Yoruba", "Igbo", "Twi", "Swahili", "German", "Mandarin", "Arabic", "Hindi"];
 
 const DENOMINATIONS = ["Non-denominational", "Baptist", "Pentecostal", "Catholic", "Anglican", "Methodist", "Presbyterian", "Seventh-day Adventist", "RCCG", "Other"];
+
+const PROVIDER_CATEGORIES = [
+  { value: "av_production",  label: "AV & Production",   icon: "🎤" },
+  { value: "catering",       label: "Catering",           icon: "🍽️" },
+  { value: "furniture_hire", label: "Furniture Hire",     icon: "🪑" },
+  { value: "photography",    label: "Photography",        icon: "📷" },
+  { value: "videography",    label: "Videography",        icon: "🎥" },
+  { value: "security",       label: "Security",           icon: "🛡️" },
+  { value: "flowers_decor",  label: "Flowers & Décor",    icon: "💐" },
+  { value: "transportation", label: "Transportation",     icon: "🚌" },
+  { value: "printing",       label: "Printing",           icon: "🖨️" },
+  { value: "music",          label: "Music & Worship",    icon: "🎵" },
+  { value: "other",          label: "Other",              icon: "⚙️" },
+] as const;
 
 const ROLES = [
   { value: "artist", label: "Artist" },
@@ -130,6 +160,7 @@ export function RegisterWizard() {
   const [accountType, setAccountType] = useState<AccountType>(null);
   const [orgStep, setOrgStep] = useState(1);
   const [indStep, setIndStep] = useState(1);
+  const [provStep, setProvStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,12 +176,23 @@ export function RegisterWizard() {
     legalName: "", idType: "passport", description: "", role: "organizer", address: "",
   });
 
+  const [prov, setProv] = useState<ProviderData>({
+    businessName: "", slug: "", slugManual: false, category: "av_production",
+    description: "", city: "", country: "GB",
+    contactEmail: "", contactPhone: "", website: "", instagramHandle: "",
+    priceFrom: "", serviceRadius: "",
+  });
+
   const setO = useCallback(<K extends keyof OrgData>(key: K, val: OrgData[K]) => {
     setOrg((prev) => ({ ...prev, [key]: val }));
   }, []);
 
   const setI = useCallback(<K extends keyof IndividualData>(key: K, val: IndividualData[K]) => {
     setInd((prev) => ({ ...prev, [key]: val }));
+  }, []);
+
+  const setP = useCallback(<K extends keyof ProviderData>(key: K, val: ProviderData[K]) => {
+    setProv((prev) => ({ ...prev, [key]: val }));
   }, []);
 
   // ── Submit org ──
@@ -189,6 +231,42 @@ export function RegisterWizard() {
     finally { setLoading(false); }
   }
 
+  // ── Submit provider ──
+  async function submitProvider() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/trpc/providers.register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          json: {
+            businessName: prov.businessName,
+            slug: prov.slug,
+            category: prov.category,
+            description: prov.description || undefined,
+            city: prov.city,
+            country: prov.country,
+            contactEmail: prov.contactEmail,
+            contactPhone: prov.contactPhone || undefined,
+            website: prov.website || undefined,
+            instagramHandle: prov.instagramHandle || undefined,
+            priceFrom: prov.priceFrom ? parseInt(prov.priceFrom) * 100 : undefined,
+            serviceRadius: prov.serviceRadius ? parseInt(prov.serviceRadius) : undefined,
+          },
+        }),
+      });
+      const data = await res.json() as { result?: { data?: { json?: { slug?: string } } }; error?: { message?: string } };
+      if (!res.ok || data.error) {
+        setError(data.error?.message ?? "Something went wrong");
+        return;
+      }
+      const slug = data.result?.data?.json?.slug ?? prov.slug;
+      router.push(`/providers/${slug}/dashboard?registered=1`);
+    } catch { setError("Network error. Please try again."); }
+    finally { setLoading(false); }
+  }
+
   // ── Submit individual ──
   async function submitIndividual() {
     setLoading(true);
@@ -214,7 +292,7 @@ export function RegisterWizard() {
           <h2 className="text-xl font-bold text-white mb-2">Who are you registering as?</h2>
           <p className="text-sm text-white/40">Choose your account type to get started.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
             {
               type: "org" as const,
@@ -227,6 +305,12 @@ export function RegisterWizard() {
               icon: "👤",
               title: "Individual",
               desc: "An artist, musician, speaker, or organizer working independently.",
+            },
+            {
+              type: "provider" as const,
+              icon: "🏢",
+              title: "Service Provider",
+              desc: "A business offering AV, catering, chairs, photography, or other event services.",
             },
           ].map(({ type, icon, title, desc }) => (
             <button
@@ -458,6 +542,146 @@ export function RegisterWizard() {
                 disabled={loading}
                 className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
                 {loading ? <><Spinner /> Creating…</> : "Create organisation →"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Provider flow ──────────────────────────────────────────────────────────
+  if (accountType === "provider") {
+    const provStepLabels = ["Business", "Profile"];
+    return (
+      <div>
+        <button onClick={() => setAccountType(null)} className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 mb-6 transition-colors">
+          ← Back
+        </button>
+        <StepBar current={provStep} total={2} labels={provStepLabels} />
+
+        {/* Step 1: Business details */}
+        {provStep === 1 && (
+          <div className="space-y-5">
+            <h2 className="text-lg font-bold text-white">Business details</h2>
+
+            <div>
+              <Label>Business name <span className="text-red-400">*</span></Label>
+              <input className={inputCls} placeholder="Bright Sounds AV Ltd"
+                value={prov.businessName}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setP("businessName", v);
+                  if (!prov.slugManual) setP("slug", toSlug(v));
+                }} />
+            </div>
+
+            <div>
+              <Label hint={`churchpass.events/services/${prov.slug || "your-business"}`}>URL handle <span className="text-red-400">*</span></Label>
+              <input className={inputCls} placeholder="bright-sounds-av"
+                value={prov.slug}
+                onChange={(e) => { setP("slugManual", true); setP("slug", toSlug(e.target.value)); }} />
+            </div>
+
+            <div>
+              <Label>Service category <span className="text-red-400">*</span></Label>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {PROVIDER_CATEGORIES.map(({ value, label, icon }) => (
+                  <button key={value} type="button"
+                    onClick={() => setP("category", value)}
+                    className={`py-2.5 px-2 rounded-xl border text-xs font-medium text-center transition-all ${prov.category === value ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>
+                    <span className="block text-lg mb-1">{icon}</span>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>City <span className="text-red-400">*</span></Label>
+                <input className={inputCls} placeholder="London"
+                  value={prov.city} onChange={(e) => setP("city", e.target.value)} />
+              </div>
+              <div>
+                <Label>Contact email <span className="text-red-400">*</span></Label>
+                <input className={inputCls} type="email" placeholder="hello@yourbusiness.com"
+                  value={prov.contactEmail} onChange={(e) => setP("contactEmail", e.target.value)} />
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">{error}</p>}
+
+            <button
+              onClick={() => {
+                if (!prov.businessName.trim()) { setError("Business name is required."); return; }
+                if (!prov.slug.trim()) { setError("URL handle is required."); return; }
+                if (!prov.city.trim()) { setError("City is required."); return; }
+                if (!prov.contactEmail.trim()) { setError("Contact email is required."); return; }
+                setError(null);
+                setProvStep(2);
+              }}
+              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors">
+              Continue →
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Profile */}
+        {provStep === 2 && (
+          <div className="space-y-5">
+            <h2 className="text-lg font-bold text-white">Business profile</h2>
+
+            <div>
+              <Label hint="Tell churches what you offer, your experience, your style">Description</Label>
+              <textarea className={`${inputCls} resize-none`} rows={3}
+                placeholder="Professional AV hire for conferences and church events across London. 10+ years experience…"
+                value={prov.description} onChange={(e) => setP("description", e.target.value)} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label hint="e.g. £500 → enter 500">Starting price (£)</Label>
+                <input className={inputCls} type="number" placeholder="500" min={0}
+                  value={prov.priceFrom} onChange={(e) => setP("priceFrom", e.target.value)} />
+              </div>
+              <div>
+                <Label hint="Leave blank for nationwide">Service radius (km)</Label>
+                <input className={inputCls} type="number" placeholder="50" min={1}
+                  value={prov.serviceRadius} onChange={(e) => setP("serviceRadius", e.target.value)} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Website</Label>
+                <input className={inputCls} placeholder="https://yourbusiness.com"
+                  value={prov.website} onChange={(e) => setP("website", e.target.value)} />
+              </div>
+              <div>
+                <Label>Phone</Label>
+                <input className={inputCls} type="tel" placeholder="+44 7700 900000"
+                  value={prov.contactPhone} onChange={(e) => setP("contactPhone", e.target.value)} />
+              </div>
+            </div>
+
+            <div>
+              <Label hint="Without @">Instagram handle</Label>
+              <input className={inputCls} placeholder="yourbusiness"
+                value={prov.instagramHandle} onChange={(e) => setP("instagramHandle", e.target.value)} />
+            </div>
+
+            {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">{error}</p>}
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setProvStep(1)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-semibold text-sm hover:bg-white/5 transition-colors">
+                ← Back
+              </button>
+              <button
+                onClick={submitProvider}
+                disabled={loading}
+                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                {loading ? <><Spinner /> Creating…</> : "Create listing →"}
               </button>
             </div>
           </div>
