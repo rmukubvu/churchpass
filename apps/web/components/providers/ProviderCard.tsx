@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ServiceProvider } from "@sanctuary/db";
-import { PROVIDER_CATEGORY_LABELS } from "@sanctuary/db";
+import { PROVIDER_CATEGORY_LABELS } from "@/lib/provider-categories";
 
 interface Props {
   provider: ServiceProvider;

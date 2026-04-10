@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { PROVIDER_CATEGORY_LABELS } from "@sanctuary/db";
+import { PROVIDER_CATEGORY_LABELS } from "@/lib/provider-categories";
 import type { ServiceProvider } from "@sanctuary/db";
 
 interface Props {
