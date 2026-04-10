@@ -8,6 +8,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 import { CATEGORY_LABELS } from "@/lib/constants";
 import { isChurchAdmin } from "@/lib/auth/isChurchAdmin";
+import { FeatureButton } from "@/components/admin/FeatureButton";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -58,6 +59,7 @@ async function fetchAdminData(slug: string) {
       rsvpCount: (rsvpMap.get(e.id) ?? 0) + (attendedMap.get(e.id) ?? 0),
       checkedIn: attendedMap.get(e.id) ?? 0,
       isUpcoming: e.startsAt >= now,
+      featuredUntil: e.featuredUntil,
     })),
   };
 }
@@ -183,6 +185,7 @@ type EventRow = {
   location: string | null;
   capacity: number | null;
   isPublic: boolean;
+  featuredUntil: Date | null;
   rsvpCount: number;
   checkedIn: number;
   isUpcoming: boolean;
@@ -269,6 +272,15 @@ function EventTable({
 
               {/* Actions */}
               <div className="flex items-center gap-3 justify-end">
+                {event.isUpcoming && (
+                  <FeatureButton
+                    eventId={event.id}
+                    isFeatured={
+                      event.featuredUntil !== null &&
+                      event.featuredUntil > new Date()
+                    }
+                  />
+                )}
                 <Link
                   href={`/${slug}/admin/events/${event.id}/edit`}
                   className="text-xs font-semibold text-white/40 hover:text-white/70 transition-colors whitespace-nowrap"
