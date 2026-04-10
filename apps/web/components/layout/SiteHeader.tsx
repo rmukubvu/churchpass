@@ -162,7 +162,7 @@ export function SiteHeader() {
                 href="/register"
                 className="text-sm font-bold px-5 py-2 rounded-full border border-white/30 text-white hover:bg-white/10 transition-colors"
               >
-                List Events
+                Register
               </Link>
             )}
           </SignedOut>
