@@ -2,13 +2,13 @@
 export const revalidate = 300;
 
 import { db } from "@/server/db";
-import { events, churches } from "@sanctuary/db";
-import { eq, and, gte, isNull, isNotNull } from "drizzle-orm";
+import { events, churches, ads } from "@sanctuary/db";
+import { eq, and, gte, lte, isNull, isNotNull } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { FeaturedEventsBanner } from "@/components/browse/FeaturedEventsBanner";
 import { UpcomingEventsGrid } from "@/components/browse/UpcomingEventsGrid";
-import { FeaturedSlider, type FeaturedEvent } from "@/components/browse/FeaturedSlider";
+import { FeaturedSlider, type FeaturedEvent, type SliderAd } from "@/components/browse/FeaturedSlider";
 import { devEvents, devChurch } from "@/lib/dev-data";
 
 async function fetchFeaturedEvents(): Promise<FeaturedEvent[]> {
@@ -46,6 +46,26 @@ async function fetchFeaturedEvents(): Promise<FeaturedEvent[]> {
   }
 }
 
+async function fetchLiveAds(): Promise<SliderAd[]> {
+  try {
+    const now = new Date();
+    return await db
+      .select()
+      .from(ads)
+      .where(
+        and(
+          eq(ads.status, "approved"),
+          lte(ads.startsAt, now),
+          gte(ads.endsAt, now),
+        )
+      )
+      .orderBy(ads.sortOrder)
+      .limit(3);
+  } catch {
+    return [];
+  }
+}
+
 async function fetchUpcomingEvents() {
   try {
     return await db
@@ -71,9 +91,10 @@ async function fetchUpcomingEvents() {
 }
 
 export default async function HomePage() {
-  const [rows, featuredEvents] = await Promise.all([
+  const [rows, featuredEvents, liveAds] = await Promise.all([
     fetchUpcomingEvents(),
     fetchFeaturedEvents(),
+    fetchLiveAds(),
   ]);
 
   return (
@@ -82,10 +103,10 @@ export default async function HomePage() {
       <SiteHeader />
       <FeaturedEventsBanner />
 
-      {/* Featured events slider */}
-      {featuredEvents.length > 0 && (
+      {/* Featured events + ads slider */}
+      {(featuredEvents.length > 0 || liveAds.length > 0) && (
         <section className="max-w-7xl mx-auto px-5 sm:px-8 pt-8 pb-2">
-          <FeaturedSlider events={featuredEvents} />
+          <FeaturedSlider events={featuredEvents} adSlots={liveAds} />
         </section>
       )}
 

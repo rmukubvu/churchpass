@@ -1,5 +1,6 @@
 export * from "./churches";
 export * from "./individuals";
+export * from "./ads";
 export * from "./attendees";
 export * from "./events";
 export * from "./rsvps";
