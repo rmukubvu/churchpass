@@ -7,8 +7,9 @@
  */
 import { notFound } from "next/navigation";
 import { db } from "@/server/db";
-import { events, churches } from "@sanctuary/db";
-import { eq } from "drizzle-orm";
+import { events, churches, attendees, rsvps } from "@sanctuary/db";
+import { eq, and, ne, inArray } from "drizzle-orm";
+import { auth } from "@clerk/nextjs/server";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { RsvpButton } from "@/components/rsvp/RsvpButton";
 import { MyTicket } from "@/components/rsvp/MyTicket";
@@ -50,6 +51,52 @@ export default async function PrivateEventPage({ params }: Props) {
 
   const hasSessions = sessions.length > 0;
   const brandColour = church.brandColour ?? "#4F46E5";
+
+  const { userId } = await auth();
+  let rsvpedSessionIds: string[] = [];
+  let hasRsvpedMainEvent = false;
+
+  if (userId) {
+    try {
+      const [attendee] = await db
+        .select({ id: attendees.id })
+        .from(attendees)
+        .where(eq(attendees.clerkUserId, userId))
+        .limit(1);
+
+      if (attendee) {
+        const [mainRsvp] = await db
+          .select({ id: rsvps.id })
+          .from(rsvps)
+          .where(
+            and(
+              eq(rsvps.eventId, event.id),
+              eq(rsvps.attendeeId, attendee.id),
+              ne(rsvps.status, "cancelled")
+            )
+          )
+          .limit(1);
+        hasRsvpedMainEvent = !!mainRsvp;
+
+        if (hasSessions) {
+          const sessionIds = sessions.map((s) => s.id);
+          const userRsvps = await db
+            .select({ eventId: rsvps.eventId })
+            .from(rsvps)
+            .where(
+              and(
+                inArray(rsvps.eventId, sessionIds),
+                eq(rsvps.attendeeId, attendee.id),
+                ne(rsvps.status, "cancelled")
+              )
+            );
+          rsvpedSessionIds = userRsvps.map((r) => r.eventId);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching user rsvps:", err);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -144,7 +191,13 @@ export default async function PrivateEventPage({ params }: Props) {
             churchSlug={church.slug}
             churchName={church.name}
             brandColour={brandColour}
+            existingRsvpedSessionIds={rsvpedSessionIds}
           />
+        ) : hasRsvpedMainEvent ? (
+          <div className="rounded-xl bg-indigo-950/30 border border-indigo-500/20 p-4 text-center space-y-1">
+            <p className="text-indigo-300 font-bold text-sm">Registered</p>
+            <p className="text-white/60 text-xs">this event you have already rsvp</p>
+          </div>
         ) : (
           <RsvpButton eventId={event.id} brandColour={brandColour} />
         )}

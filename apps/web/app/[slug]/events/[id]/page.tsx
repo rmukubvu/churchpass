@@ -92,8 +92,9 @@ export default async function EventPage({ params }: Props) {
 
   const { userId } = await auth();
   let rsvpedSessionIds: string[] = [];
+  let hasRsvpedMainEvent = false;
 
-  if (userId && isParentConference) {
+  if (userId) {
     try {
       const [attendee] = await db
         .select({ id: attendees.id })
@@ -102,18 +103,33 @@ export default async function EventPage({ params }: Props) {
         .limit(1);
 
       if (attendee) {
-        const sessionIds = sessions.map((s) => s.id);
-        const userRsvps = await db
-          .select({ eventId: rsvps.eventId })
+        const [mainRsvp] = await db
+          .select({ id: rsvps.id })
           .from(rsvps)
           .where(
             and(
-              inArray(rsvps.eventId, sessionIds),
+              eq(rsvps.eventId, event.id),
               eq(rsvps.attendeeId, attendee.id),
               ne(rsvps.status, "cancelled")
             )
-          );
-        rsvpedSessionIds = userRsvps.map((r) => r.eventId);
+          )
+          .limit(1);
+        hasRsvpedMainEvent = !!mainRsvp;
+
+        if (isParentConference) {
+          const sessionIds = sessions.map((s) => s.id);
+          const userRsvps = await db
+            .select({ eventId: rsvps.eventId })
+            .from(rsvps)
+            .where(
+              and(
+                inArray(rsvps.eventId, sessionIds),
+                eq(rsvps.attendeeId, attendee.id),
+                ne(rsvps.status, "cancelled")
+              )
+            );
+          rsvpedSessionIds = userRsvps.map((r) => r.eventId);
+        }
       }
     } catch (err) {
       console.error("Error fetching user rsvps:", err);
@@ -375,11 +391,19 @@ export default async function EventPage({ params }: Props) {
                   </div>
 
                   {/* RSVP button */}
-                  <RsvpButton eventId={event.id} brandColour={church.brandColour} />
-
-                  <p className="text-[10px] text-white/20 text-center leading-relaxed">
-                    You&apos;ll receive a confirmation email with your QR ticket after registering.
-                  </p>
+                  {hasRsvpedMainEvent ? (
+                    <div className="rounded-xl bg-indigo-950/30 border border-indigo-500/20 p-4 text-center space-y-1">
+                      <p className="text-indigo-300 font-bold text-sm">Registered</p>
+                      <p className="text-white/60 text-xs">this event you have already rsvp</p>
+                    </div>
+                  ) : (
+                    <>
+                      <RsvpButton eventId={event.id} brandColour={church.brandColour} />
+                      <p className="text-[10px] text-white/20 text-center leading-relaxed">
+                        You&apos;ll receive a confirmation email with your QR ticket after registering.
+                      </p>
+                    </>
+                  )}
 
                   <MyTicket eventId={event.id} brandColour={church.brandColour} />
                 </>
@@ -393,7 +417,7 @@ export default async function EventPage({ params }: Props) {
       <NearbyStays eventId={event.id} />
 
       {/* Sticky mobile RSVP bar */}
-      {!isParentConference && (
+      {!isParentConference && !hasRsvpedMainEvent && (
         <div className="fixed bottom-0 left-0 right-0 md:hidden z-50 p-4 bg-[#0f0f0f]/95 backdrop-blur border-t border-white/5">
           <RsvpButton eventId={event.id} brandColour={church.brandColour} />
         </div>
