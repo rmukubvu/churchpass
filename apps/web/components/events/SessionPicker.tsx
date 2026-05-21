@@ -20,9 +20,16 @@ type Props = {
   churchSlug: string;
   churchName: string;
   brandColour: string;
+  existingRsvpedSessionIds?: string[];
 };
 
-export function SessionPicker({ sessions, churchSlug, churchName, brandColour }: Props) {
+export function SessionPicker({
+  sessions,
+  churchSlug,
+  churchName,
+  brandColour,
+  existingRsvpedSessionIds = [],
+}: Props) {
   const { isSignedIn } = useAuth();
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -30,7 +37,11 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
+  const isAlreadyRsvped = (id: string) => existingRsvpedSessionIds.includes(id);
+  const allSessionsRsvped = sessions.length > 0 && sessions.every((s) => isAlreadyRsvped(s.id));
+
   function toggle(id: string) {
+    if (isAlreadyRsvped(id)) return;
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -79,7 +90,8 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
         <p className="text-[10px] text-white/30 uppercase tracking-wider mb-3">Select your sessions</p>
         <div className="space-y-2 max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-white/10">
           {sessions.map((session) => {
-            const isSelected = selected.has(session.id);
+            const isRsvped = isAlreadyRsvped(session.id);
+            const isSelected = selected.has(session.id) || isRsvped;
             const dateLabel = formatShortDate(session.startsAt);
             const timeLabel = formatSessionTime(session.startsAt);
             const endTimeLabel = formatSessionTime(session.endsAt);
@@ -88,10 +100,13 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
               <button
                 key={session.id}
                 type="button"
-                onClick={() => toggle(session.id)}
+                disabled={isRsvped}
+                onClick={() => !isRsvped && toggle(session.id)}
                 className={cn(
                   "w-full text-left rounded-xl border p-3 transition-all duration-150",
-                  isSelected
+                  isRsvped
+                    ? "border-emerald-500/30 bg-emerald-950/10 cursor-not-allowed opacity-80"
+                    : isSelected
                     ? "border-indigo-500 bg-indigo-600/15 ring-1 ring-indigo-500/40"
                     : "border-white/8 bg-white/3 hover:border-indigo-500/40 hover:bg-white/5"
                 )}
@@ -101,21 +116,36 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
                   <div
                     className={cn(
                       "w-5 h-5 rounded-md border-2 flex items-center justify-center flex-none transition-colors",
-                      isSelected ? "bg-indigo-600 border-indigo-500" : "border-white/25 bg-black/30"
+                      isRsvped
+                        ? "bg-emerald-600 border-emerald-500"
+                        : isSelected
+                        ? "bg-indigo-600 border-indigo-500"
+                        : "border-white/25 bg-black/30"
                     )}
                   >
-                    {isSelected && (
+                    {isRsvped ? (
+                      <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
+                        <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    ) : isSelected ? (
                       <svg className="w-3 h-3 text-white" viewBox="0 0 12 12" fill="none">
                         <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                    )}
+                    ) : null}
                   </div>
 
                   {/* Session info */}
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-indigo-200" : "text-white")}>
-                      {session.title}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className={cn("text-sm font-semibold leading-snug truncate", isRsvped ? "text-emerald-200/90" : isSelected ? "text-indigo-200" : "text-white")}>
+                        {session.title}
+                      </p>
+                      {isRsvped && (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-1.5 py-0.5 rounded-md flex-none">
+                          Registered
+                        </span>
+                      )}
+                    </div>
                     <p className="text-[11px] text-white/40 mt-0.5">
                       {dateLabel} · {timeLabel} – {endTimeLabel}
                     </p>
@@ -129,28 +159,35 @@ export function SessionPicker({ sessions, churchSlug, churchName, brandColour }:
 
       {error && <p className="text-red-400 text-xs">{error}</p>}
 
-      <button
-        type="button"
-        onClick={handleRsvp}
-        disabled={loading || selected.size === 0}
-        className={cn(
-          "w-full py-3 rounded-xl text-sm font-bold transition-all duration-200",
-          selected.size > 0 && !loading
-            ? "text-white shadow-lg shadow-indigo-900/40 hover:opacity-90 active:scale-[0.98]"
-            : "bg-white/5 text-white/25 cursor-not-allowed"
-        )}
-        style={
-          selected.size > 0 && !loading
-            ? { backgroundColor: brandColour }
-            : undefined
-        }
-      >
-        {loading
-          ? "Registering…"
-          : selected.size === 0
-          ? "Select at least one session"
-          : `RSVP to ${selected.size} session${selected.size > 1 ? "s" : ""}`}
-      </button>
+      {allSessionsRsvped ? (
+        <div className="rounded-xl bg-indigo-950/30 border border-indigo-500/20 p-4 text-center space-y-1">
+          <p className="text-indigo-300 font-bold text-sm">Registered</p>
+          <p className="text-white/60 text-xs">this event you have already rsvp</p>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={handleRsvp}
+          disabled={loading || selected.size === 0}
+          className={cn(
+            "w-full py-3 rounded-xl text-sm font-bold transition-all duration-200",
+            selected.size > 0 && !loading
+              ? "text-white shadow-lg shadow-indigo-900/40 hover:opacity-90 active:scale-[0.98]"
+              : "bg-white/5 text-white/25 cursor-not-allowed"
+          )}
+          style={
+            selected.size > 0 && !loading
+              ? { backgroundColor: brandColour }
+              : undefined
+          }
+        >
+          {loading
+            ? "Registering…"
+            : selected.size === 0
+            ? "Select at least one session"
+            : `RSVP to ${selected.size} session${selected.size > 1 ? "s" : ""}`}
+        </button>
+      )}
 
       {!isSignedIn && (
         <p className="text-[10px] text-white/20 text-center">

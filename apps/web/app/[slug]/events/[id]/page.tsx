@@ -1,9 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/server/db";
-import { events, churches, rsvps } from "@sanctuary/db";
-import { eq, and, ne, count } from "drizzle-orm";
+import { events, churches, rsvps, attendees } from "@sanctuary/db";
+import { eq, and, ne, count, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
+import { auth } from "@clerk/nextjs/server";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { RsvpButton } from "@/components/rsvp/RsvpButton";
 import { MyTicket } from "@/components/rsvp/MyTicket";
@@ -88,6 +89,36 @@ export default async function EventPage({ params }: Props) {
 
   const { event, church, sessions, parentEvent, rsvpCount } = data;
   const isParentConference = sessions.length > 0;
+
+  const { userId } = await auth();
+  let rsvpedSessionIds: string[] = [];
+
+  if (userId && isParentConference) {
+    try {
+      const [attendee] = await db
+        .select({ id: attendees.id })
+        .from(attendees)
+        .where(eq(attendees.clerkUserId, userId))
+        .limit(1);
+
+      if (attendee) {
+        const sessionIds = sessions.map((s) => s.id);
+        const userRsvps = await db
+          .select({ eventId: rsvps.eventId })
+          .from(rsvps)
+          .where(
+            and(
+              inArray(rsvps.eventId, sessionIds),
+              eq(rsvps.attendeeId, attendee.id),
+              ne(rsvps.status, "cancelled")
+            )
+          );
+        rsvpedSessionIds = userRsvps.map((r) => r.eventId);
+      }
+    } catch (err) {
+      console.error("Error fetching user rsvps:", err);
+    }
+  }
 
   const start = new Date(event.startsAt);
   const end = new Date(event.endsAt);
@@ -309,6 +340,7 @@ export default async function EventPage({ params }: Props) {
                   churchSlug={slug}
                   churchName={church.name}
                   brandColour={church.brandColour}
+                  existingRsvpedSessionIds={rsvpedSessionIds}
                 />
               ) : (
                 <>
