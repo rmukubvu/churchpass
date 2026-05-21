@@ -40,7 +40,7 @@ function formatGoogleCalendarDate(date: Date): string {
   return date.toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
 }
 
-function googleCalendarLink(event: RsvpEventSummary, churchName: string, appUrl: string): string {
+function googleCalendarLink(event: RsvpEventSummary, churchName: string, churchSlug: string, appUrl: string): string {
   const start = formatGoogleCalendarDate(event.startsAt);
   const end = event.endsAt
     ? formatGoogleCalendarDate(event.endsAt)
@@ -50,16 +50,16 @@ function googleCalendarLink(event: RsvpEventSummary, churchName: string, appUrl:
     action: "TEMPLATE",
     text: `${event.title} — ${churchName}`,
     dates: `${start}/${end}`,
-    details: `RSVP confirmed via Church Pass\n${appUrl}/${churchName.toLowerCase().replace(/\s+/g, "-")}/events/${event.id}`,
+    details: `RSVP confirmed via Church Pass\n${appUrl}/${churchSlug}/events/${event.id}`,
     location: event.location ?? "",
   });
 
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-function eventCard(event: RsvpEventSummary, churchName: string, appUrl: string): string {
-  const calLink = googleCalendarLink(event, churchName, appUrl);
-  const eventUrl = `${appUrl}/${churchName.toLowerCase().replace(/\s+/g, "-")}/events/${event.id}`;
+function eventCard(event: RsvpEventSummary, churchName: string, churchSlug: string, appUrl: string): string {
+  const calLink = googleCalendarLink(event, churchName, churchSlug, appUrl);
+  const eventUrl = `${appUrl}/${churchSlug}/events/${event.id}`;
 
   // QR image: use CID if available (inline attachment), fall back to nothing
   const qrBlock = event.qrCid
@@ -184,13 +184,13 @@ export function buildRsvpConfirmationEmail(data: RsvpConfirmationData): {
   html: string;
   text: string;
 } {
-  const { firstName, churchName, events, appUrl } = data;
+  const { firstName, churchName, churchSlug, events, appUrl } = data;
   const isSingle = events.length === 1;
   const subject = isSingle
     ? `You're in! Your pass for ${events[0]!.title}`
     : `You're in! ${events.length} passes confirmed at ${churchName}`;
 
-  const eventCards = events.map((e) => eventCard(e, churchName, appUrl)).join("");
+  const eventCards = events.map((e) => eventCard(e, churchName, churchSlug, appUrl)).join("");
 
   const html = `<!DOCTYPE html>
 <html lang="en">

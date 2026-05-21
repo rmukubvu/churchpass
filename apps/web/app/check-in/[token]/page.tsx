@@ -161,7 +161,7 @@ export default async function CheckInPage({ params }: Props) {
                 </div>
               ) : (
                 <CheckInConfirmButton
-                  rsvpId={rsvp.id}
+                  walletPassToken={token}
                   eventId={event.id}
                   attendeeName={`${attendee.firstName} ${attendee.lastName}`}
                   brandColour={brandColour}

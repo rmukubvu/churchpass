@@ -66,8 +66,10 @@ describe("EventCard", () => {
     expect(link).toHaveAttribute("href", "/grace-church/events/evt_1");
   });
 
-  it("renders without a banner image when bannerUrl is null", () => {
+  it("renders a placeholder banner image when bannerUrl is null", () => {
     render(<EventCard event={mockEvent} churchSlug="grace-church" />);
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    const img = screen.getByRole("img");
+    expect(img).toHaveAttribute("src");
+    expect(decodeURIComponent(img.getAttribute("src")!)).toContain("event_place_holder.jpg");
   });
 });

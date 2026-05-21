@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/server/db";
-import { events, churches } from "@sanctuary/db";
-import { eq } from "drizzle-orm";
+import { events, churches, rsvps } from "@sanctuary/db";
+import { eq, and, ne, count } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { RsvpButton } from "@/components/rsvp/RsvpButton";
@@ -21,7 +21,7 @@ type Props = {
 async function fetchEventData(
   slug: string,
   id: string
-): Promise<{ event: Event; church: Church; sessions: Event[]; parentEvent: Event | null } | null> {
+): Promise<{ event: Event; church: Church; sessions: Event[]; parentEvent: Event | null; rsvpCount: number } | null> {
   try {
     const [event] = await db
       .select()
@@ -57,14 +57,25 @@ async function fetchEventData(
           .then((rows) => rows[0] ?? null)
       : null;
 
-    return { event, church, sessions, parentEvent };
+    const rsvpCountResult = await db
+      .select({ count: count() })
+      .from(rsvps)
+      .where(
+        and(
+          eq(rsvps.eventId, id),
+          ne(rsvps.status, "cancelled")
+        )
+      );
+    const rsvpCount = rsvpCountResult[0]?.count ?? 0;
+
+    return { event, church, sessions, parentEvent, rsvpCount };
   } catch {
     if (process.env.NODE_ENV === "development") {
       const devData = getDevData(slug);
       if (!devData) return null;
       const event = devData.events.find((e) => e.id === id);
       if (!event) return null;
-      return { event, church: devData.church, sessions: [], parentEvent: null };
+      return { event, church: devData.church, sessions: [], parentEvent: null, rsvpCount: 0 };
     }
     throw new Error("Database unavailable");
   }
@@ -75,7 +86,7 @@ export default async function EventPage({ params }: Props) {
   const data = await fetchEventData(slug, id);
   if (!data) notFound();
 
-  const { event, church, sessions, parentEvent } = data;
+  const { event, church, sessions, parentEvent, rsvpCount } = data;
   const isParentConference = sessions.length > 0;
 
   const start = new Date(event.startsAt);
@@ -88,7 +99,10 @@ export default async function EventPage({ params }: Props) {
     timeZone: church.timezone,
   }).format(end);
 
-  const spotsLeft = event.capacity !== null ? event.capacity : null;
+  const spotsLeft = event.capacity !== null ? Math.max(0, event.capacity - rsvpCount) : null;
+  const percentFilled = event.capacity && event.capacity > 0
+    ? Math.min(100, Math.round((rsvpCount / event.capacity) * 100))
+    : 0;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
@@ -303,10 +317,13 @@ export default async function EventPage({ params }: Props) {
                     <div>
                       <div className="flex justify-between text-xs text-white/40 mb-1.5">
                         <span>Capacity</span>
-                        <span>{spotsLeft.toLocaleString()} spots</span>
+                        <span>{spotsLeft.toLocaleString()} spots left</span>
                       </div>
                       <div className="h-1 rounded-full bg-white/10">
-                        <div className="h-1 rounded-full bg-indigo-500 w-[5%]" />
+                        <div
+                          className="h-1 rounded-full bg-indigo-500 transition-all duration-500"
+                          style={{ width: `${percentFilled}%` }}
+                        />
                       </div>
                     </div>
                   )}

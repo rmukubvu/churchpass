@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, ne, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { currentUser } from "@clerk/nextjs/server";
 import { router, protectedProcedure } from "../init";
@@ -7,6 +7,7 @@ import { rsvps, attendees, events, churches, type Db } from "@sanctuary/db";
 import { sendRsvpConfirmation } from "@/lib/sendgrid";
 import { sendRsvpSms } from "@/lib/sms";
 import { checkInUrl } from "@/lib/qrcode";
+import { isChurchAdmin } from "@/lib/auth/isChurchAdmin";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -21,13 +22,14 @@ async function syncAttendee(
   const email = user?.emailAddresses?.[0]?.emailAddress ?? "";
   const firstName = user?.firstName ?? "";
   const lastName = user?.lastName ?? "";
+  const phone = user?.phoneNumbers?.[0]?.phoneNumber ?? null;
 
   const [attendee] = await db
     .insert(attendees)
-    .values({ churchId, clerkUserId, email, firstName, lastName })
+    .values({ churchId, clerkUserId, email, firstName, lastName, phone })
     .onConflictDoUpdate({
       target: [attendees.churchId, attendees.clerkUserId],
-      set: { email, firstName, lastName },
+      set: { email, firstName, lastName, phone },
     })
     .returning();
 
@@ -70,12 +72,48 @@ export const rsvpsRouter = router({
         .where(and(eq(rsvps.eventId, input.eventId), eq(rsvps.attendeeId, attendee.id)))
         .limit(1);
 
-      if (existing) return existing;
+      if (existing) {
+        if (existing.status !== "cancelled") {
+          return existing;
+        }
+      }
 
-      const [rsvp] = await ctx.db
-        .insert(rsvps)
-        .values({ eventId: input.eventId, attendeeId: attendee.id, isFirstTimer })
-        .returning();
+      // Check capacity if event capacity is set
+      if (event.capacity !== null && event.capacity !== undefined) {
+        const rsvpCountResult = await ctx.db
+          .select({ count: count() })
+          .from(rsvps)
+          .where(
+            and(
+              eq(rsvps.eventId, input.eventId),
+              ne(rsvps.status, "cancelled")
+            )
+          );
+        const rsvpCount = rsvpCountResult[0]?.count ?? 0;
+
+        if (rsvpCount >= event.capacity) {
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "Event capacity has been reached",
+          });
+        }
+      }
+
+      let rsvp;
+      if (existing) {
+        const [updated] = await ctx.db
+          .update(rsvps)
+          .set({ status: "confirmed" })
+          .where(eq(rsvps.id, existing.id))
+          .returning();
+        rsvp = updated;
+      } else {
+        const [inserted] = await ctx.db
+          .insert(rsvps)
+          .values({ eventId: input.eventId, attendeeId: attendee.id, isFirstTimer })
+          .returning();
+        rsvp = inserted;
+      }
 
       const singleEventPayload = {
         id: event.id,
@@ -157,7 +195,7 @@ export const rsvpsRouter = router({
 
       // 3. Check which RSVPs already exist
       const existingRsvps = await ctx.db
-        .select({ eventId: rsvps.eventId })
+        .select()
         .from(rsvps)
         .where(
           and(
@@ -166,22 +204,65 @@ export const rsvpsRouter = router({
           )
         );
 
-      const alreadyRsvpd = new Set(existingRsvps.map((r) => r.eventId));
-      const newEventIds = eventIds.filter((id) => !alreadyRsvpd.has(id));
+      const alreadyActiveRsvpd = new Set(
+        existingRsvps.filter((r) => r.status !== "cancelled").map((r) => r.eventId)
+      );
+      const newEventIds = eventIds.filter((id) => !alreadyActiveRsvpd.has(id));
 
-      // 4. Insert new RSVPs
+      // 4. Enforce capacity limits on new RSVPs
+      if (newEventIds.length > 0) {
+        const activeRsvpsCount = await ctx.db
+          .select({ eventId: rsvps.eventId, count: count() })
+          .from(rsvps)
+          .where(
+            and(
+              inArray(rsvps.eventId, newEventIds),
+              ne(rsvps.status, "cancelled")
+            )
+          )
+          .groupBy(rsvps.eventId);
+
+        const countMap = new Map<string, number>(
+          activeRsvpsCount.map((r) => [r.eventId, r.count])
+        );
+
+        for (const event of foundEvents) {
+          if (newEventIds.includes(event.id) && event.capacity !== null && event.capacity !== undefined) {
+            const currentCount = countMap.get(event.id) ?? 0;
+            if (currentCount >= event.capacity) {
+              throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: `Capacity limit reached for event: ${event.title}`,
+              });
+            }
+          }
+        }
+      }
+
+      // 5. Insert new RSVPs (or reactivate cancelled ones)
       let newRsvps: any[] = [];
       if (newEventIds.length > 0) {
-        newRsvps = await ctx.db
-          .insert(rsvps)
-          .values(
-            newEventIds.map((eventId) => ({
-              eventId,
-              attendeeId: attendee.id,
-              isFirstTimer: false,
-            }))
-          )
-          .returning();
+        for (const eventId of newEventIds) {
+          const existing = existingRsvps.find((r) => r.eventId === eventId);
+          if (existing) {
+            const [updated] = await ctx.db
+              .update(rsvps)
+              .set({ status: "confirmed" })
+              .where(eq(rsvps.id, existing.id))
+              .returning();
+            newRsvps.push(updated);
+          } else {
+            const [inserted] = await ctx.db
+              .insert(rsvps)
+              .values({
+                eventId,
+                attendeeId: attendee.id,
+                isFirstTimer: false,
+              })
+              .returning();
+            newRsvps.push(inserted);
+          }
+        }
       }
 
       // 5. Fetch all RSVPs (existing + new) to get walletPassTokens for QR codes
@@ -246,7 +327,7 @@ export const rsvpsRouter = router({
 
       return {
         created: newRsvps.length,
-        alreadyExisted: alreadyRsvpd.size,
+        alreadyExisted: alreadyActiveRsvpd.size,
         total: eventIds.length,
       };
     }),
@@ -254,6 +335,26 @@ export const rsvpsRouter = router({
   list: protectedProcedure
     .input(z.object({ eventId: z.string() }))
     .query(async ({ ctx, input }) => {
+      const [event] = await ctx.db
+        .select({ churchId: events.churchId })
+        .from(events)
+        .where(eq(events.id, input.eventId))
+        .limit(1);
+
+      if (!event) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Event not found" });
+      }
+
+      const [church] = await ctx.db
+        .select({ slug: churches.slug })
+        .from(churches)
+        .where(eq(churches.id, event.churchId))
+        .limit(1);
+
+      if (!church || !(await isChurchAdmin(church.slug))) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized to list RSVPs" });
+      }
+
       return ctx.db
         .select()
         .from(rsvps)
@@ -263,6 +364,36 @@ export const rsvpsRouter = router({
   cancel: protectedProcedure
     .input(z.object({ rsvpId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      const [rsvpData] = await ctx.db
+        .select({
+          rsvp: rsvps,
+          clerkUserId: attendees.clerkUserId,
+          churchId: events.churchId,
+        })
+        .from(rsvps)
+        .innerJoin(attendees, eq(rsvps.attendeeId, attendees.id))
+        .innerJoin(events, eq(rsvps.eventId, events.id))
+        .where(eq(rsvps.id, input.rsvpId))
+        .limit(1);
+
+      if (!rsvpData) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "RSVP not found" });
+      }
+
+      const isOwner = rsvpData.clerkUserId === ctx.clerkUserId;
+
+      const [church] = await ctx.db
+        .select({ slug: churches.slug })
+        .from(churches)
+        .where(eq(churches.id, rsvpData.churchId))
+        .limit(1);
+
+      const isAdmin = church ? await isChurchAdmin(church.slug) : false;
+
+      if (!isOwner && !isAdmin) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Not authorized to cancel this RSVP" });
+      }
+
       const [updated] = await ctx.db
         .update(rsvps)
         .set({ status: "cancelled" })

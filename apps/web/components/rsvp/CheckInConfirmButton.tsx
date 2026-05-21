@@ -5,7 +5,8 @@ import { cn } from "@/lib/utils";
 import { trpc } from "@/lib/trpc-client";
 
 type Props = {
-  rsvpId: string;
+  rsvpId?: string;
+  walletPassToken?: string;
   eventId: string;
   attendeeName: string;
   brandColour: string;
@@ -13,14 +14,20 @@ type Props = {
 
 type State = "idle" | "loading" | "done" | "error";
 
-export function CheckInConfirmButton({ rsvpId, eventId, attendeeName, brandColour }: Props) {
+export function CheckInConfirmButton({ rsvpId, walletPassToken, eventId, attendeeName, brandColour }: Props) {
   const [state, setState] = useState<State>("idle");
   const [checkedInAt, setCheckedInAt] = useState<string>("");
 
   async function handleCheckIn() {
     setState("loading");
     try {
-      await trpc.checkins.manual.mutate({ rsvpId, eventId });
+      if (walletPassToken) {
+        await trpc.checkins.create.mutate({ walletPassToken, eventId, method: "qr" });
+      } else if (rsvpId) {
+        await trpc.checkins.manual.mutate({ rsvpId, eventId });
+      } else {
+        throw new Error("Missing rsvpId or walletPassToken");
+      }
 
       setCheckedInAt(
         new Intl.DateTimeFormat("en-US", {
