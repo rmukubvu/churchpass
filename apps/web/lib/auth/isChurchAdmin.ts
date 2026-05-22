@@ -7,23 +7,31 @@ import { and, eq } from "drizzle-orm";
  * Returns true if the signed-in user is allowed to admin the given church slug.
  *
  * Access is granted when ANY of the following is true:
- * 1. `publicMetadata.role === "superadmin"` — global admin
+ * 1. `publicMetadata.role === "admin"` or `"superadmin"` — global admin
  * 2. `publicMetadata.adminOf` array contains the church slug (JWT-based)
  * 3. `churches.ownerClerkUserId === userId` — DB-based, works immediately after registration
- * 4. `ADMIN_USER_IDS` env var contains the user's Clerk ID (dev convenience)
+ * 4. `ADMIN_USER_IDS` or `NEXT_PUBLIC_ADMIN_USER_IDS` env var contains the user's Clerk ID (dev convenience)
  */
 export async function isChurchAdmin(churchSlug: string): Promise<boolean> {
   const { userId, sessionClaims } = await auth();
   if (!userId) return false;
 
   // Dev convenience: comma-separated list of Clerk user IDs in env
-  const adminIds = process.env.ADMIN_USER_IDS ?? "";
-  if (adminIds.split(",").map((s) => s.trim()).includes(userId)) return true;
+  const adminIds = (process.env.ADMIN_USER_IDS ?? "") + "," + (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? "");
+  if (
+    adminIds
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .includes(userId)
+  ) {
+    return true;
+  }
 
   const meta = (sessionClaims?.publicMetadata ?? {}) as Record<string, unknown>;
 
-  // Superadmin — access to all churches
-  if (meta.role === "superadmin") return true;
+  // Global admin / Superadmin — access to all churches
+  if (meta.role === "admin" || meta.role === "superadmin") return true;
 
   // Per-church access via JWT (fast path, cached in token)
   const adminOf = meta.adminOf;
@@ -39,3 +47,4 @@ export async function isChurchAdmin(churchSlug: string): Promise<boolean> {
 
   return false;
 }
+
