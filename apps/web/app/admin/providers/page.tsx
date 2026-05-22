@@ -15,6 +15,7 @@ export default async function AdminProvidersPage() {
   const user = await currentUser();
   const isAdmin =
     (user?.publicMetadata as { role?: string })?.role === "admin" ||
+    (user?.publicMetadata as { role?: string })?.role === "superadmin" ||
     ADMIN_IDS.includes(userId);
   if (!isAdmin) redirect("/");
 

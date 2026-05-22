@@ -56,6 +56,18 @@ export default async function AdminDashboardPage() {
           href="/admin/attendees"
           cta="View Attendees →"
         />
+        <QuickCard
+          title="Ads Queue"
+          description="Review submitted homepage carousel ads, approve/reject them, and set sort orders."
+          href="/admin/ads"
+          cta="Manage Ads →"
+        />
+        <QuickCard
+          title="Service Providers"
+          description="Verify, activate, or suspend business/service provider directory listings."
+          href="/admin/providers"
+          cta="Manage Providers →"
+        />
       </div>
 
       {/* DB warning when running on dev data */}

@@ -15,7 +15,7 @@ import Link from "next/link";
  */
 
 function isAdminUser(userId: string, role: unknown): boolean {
-  if (role === "admin") return true;
+  if (role === "admin" || role === "superadmin") return true;
 
   const allowList = process.env["ADMIN_USER_IDS"] ?? "";
   if (!allowList) return false;
@@ -27,6 +27,8 @@ const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "⬛" },
   { href: "/admin/events", label: "Events", icon: "📅" },
   { href: "/admin/attendees", label: "Attendees", icon: "👥" },
+  { href: "/admin/ads", label: "Ads Queue", icon: "📢" },
+  { href: "/admin/providers", label: "Providers", icon: "💼" },
 ] as const;
 
 export default async function AdminLayout({

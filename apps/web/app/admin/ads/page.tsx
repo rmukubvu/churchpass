@@ -22,6 +22,7 @@ export default async function AdminAdsPage() {
   const user = await clerk.users.getUser(userId);
   const isSuperAdmin =
     user.publicMetadata?.role === "admin" ||
+    user.publicMetadata?.role === "superadmin" ||
     (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? "").split(",").map((s) => s.trim()).includes(userId);
 
   if (!isSuperAdmin) redirect("/");
