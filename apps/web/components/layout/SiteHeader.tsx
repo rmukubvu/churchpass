@@ -9,8 +9,13 @@ function AdminLink() {
   const { user, isLoaded } = useUser();
   if (!isLoaded || !user) return null;
 
+  const emails = ["rmukubvu@googlemail.com", "rmukubvu@gmail.com"];
+  const userEmail = user.primaryEmailAddress?.emailAddress?.toLowerCase() ?? "";
+
   const isSuperAdmin =
     user.publicMetadata?.role === "admin" ||
+    user.publicMetadata?.role === "superadmin" ||
+    emails.includes(userEmail) ||
     (process.env["NEXT_PUBLIC_ADMIN_USER_IDS"] ?? "")
       .split(",")
       .map((id) => id.trim())

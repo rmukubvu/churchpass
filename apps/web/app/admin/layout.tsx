@@ -1,27 +1,11 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { isSystemAdmin } from "@/lib/auth/isSystemAdmin";
 
 /**
- * Admin layout — requires:
- *   1. Clerk authentication (any sign-in)
- *   2. role === "admin" in Clerk publicMetadata  OR  user is in ADMIN_USER_IDS env var
- *
- * To grant admin access, go to Clerk Dashboard → Users → [user] → Metadata
- * and set publicMetadata = { "role": "admin" }
- *
- * Alternatively, add the user's Clerk userId to the ADMIN_USER_IDS env var
- * (comma-separated) for quick local dev without touching Clerk dashboard.
+ * Admin layout — requires system admin access (role admin/superadmin, matching env vars, or email fallback)
  */
-
-function isAdminUser(userId: string, role: unknown): boolean {
-  if (role === "admin" || role === "superadmin") return true;
-
-  const allowList = process.env["ADMIN_USER_IDS"] ?? "";
-  if (!allowList) return false;
-
-  return allowList.split(",").map((id) => id.trim()).includes(userId);
-}
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: "⬛" },
@@ -39,13 +23,12 @@ export default async function AdminLayout({
   const { userId } = await auth();
   if (!userId) redirect("/sign-in?redirect_url=/admin");
 
-  const user = await currentUser();
-  const role = user?.publicMetadata?.role;
-
-  if (!isAdminUser(userId, role)) {
+  if (!(await isSystemAdmin())) {
     // Not an admin — send them to a friendly access-denied page
     redirect("/?error=access_denied");
   }
+
+  const user = await currentUser();
 
   const displayName =
     user?.firstName ?? user?.emailAddresses?.[0]?.emailAddress ?? "Admin";

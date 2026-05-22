@@ -1,23 +1,17 @@
 import { redirect } from "next/navigation";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import { db } from "@/server/db";
 import { serviceProviders, PROVIDER_CATEGORY_LABELS } from "@sanctuary/db";
 import { desc } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { ProviderAdminTable } from "@/components/admin/ProviderAdminTable";
-
-const ADMIN_IDS = (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? "").split(",").filter(Boolean);
+import { isSystemAdmin } from "@/lib/auth/isSystemAdmin";
 
 export default async function AdminProvidersPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  const user = await currentUser();
-  const isAdmin =
-    (user?.publicMetadata as { role?: string })?.role === "admin" ||
-    (user?.publicMetadata as { role?: string })?.role === "superadmin" ||
-    ADMIN_IDS.includes(userId);
-  if (!isAdmin) redirect("/");
+  if (!(await isSystemAdmin())) redirect("/");
 
   const allProviders = await db
     .select()

@@ -9,7 +9,7 @@ import { ads } from "@sanctuary/db";
 import { desc } from "drizzle-orm";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { AdReviewTable } from "@/components/admin/AdReviewTable";
-import { clerkClient } from "@clerk/nextjs/server";
+import { isSystemAdmin } from "@/lib/auth/isSystemAdmin";
 
 export const revalidate = 0;
 
@@ -17,15 +17,7 @@ export default async function AdminAdsPage() {
   const { userId } = await auth();
   if (!userId) redirect("/sign-in");
 
-  // Check platform admin role
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
-  const isSuperAdmin =
-    user.publicMetadata?.role === "admin" ||
-    user.publicMetadata?.role === "superadmin" ||
-    (process.env.NEXT_PUBLIC_ADMIN_USER_IDS ?? "").split(",").map((s) => s.trim()).includes(userId);
-
-  if (!isSuperAdmin) redirect("/");
+  if (!(await isSystemAdmin())) redirect("/");
 
   const allAds = await db.select().from(ads).orderBy(desc(ads.createdAt)).limit(200);
 
