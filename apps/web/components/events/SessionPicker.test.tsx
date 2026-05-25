@@ -3,8 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 import { SessionPicker } from "./SessionPicker";
 import type { Event } from "@sanctuary/db";
 
-// Mock Clerk auth
-vi.mock("@clerk/nextjs", () => ({
+// Mock custom auth
+vi.mock("@/lib/auth/client", () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),

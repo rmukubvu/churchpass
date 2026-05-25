@@ -1,4 +1,5 @@
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { db } from "@/server/db";
 import { churches } from "@sanctuary/db";
 import { eq } from "drizzle-orm";
@@ -93,17 +94,17 @@ export async function POST(req: NextRequest) {
 
   if (!church) return NextResponse.json({ error: "Failed to create church" }, { status: 500 });
 
-  // Grant admin access via Clerk metadata
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
-  const existingAdminOf = (user.publicMetadata?.adminOf as string[] | undefined) ?? [];
-
-  await clerk.users.updateUserMetadata(userId, {
-    publicMetadata: {
-      ...user.publicMetadata,
-      adminOf: [...new Set([...existingAdminOf, cleanSlug])],
-    },
-  });
+  // Grant admin access via Supabase metadata
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    const existingAdminOf = (user.user_metadata?.adminOf as string[] | undefined) ?? [];
+    await supabase.auth.updateUser({
+      data: {
+        adminOf: [...new Set([...existingAdminOf, cleanSlug])],
+      },
+    });
+  }
 
   return NextResponse.json({ slug: church.slug });
 }

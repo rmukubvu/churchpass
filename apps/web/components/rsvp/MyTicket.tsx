@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
 import { rsvps, attendees } from "@sanctuary/db";
 import { eq, and } from "drizzle-orm";

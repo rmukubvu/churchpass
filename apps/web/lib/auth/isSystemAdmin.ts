@@ -1,4 +1,4 @@
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@/lib/auth";
 
 const SYSTEM_ADMIN_EMAILS = [
   "rmukubvu@googlemail.com",

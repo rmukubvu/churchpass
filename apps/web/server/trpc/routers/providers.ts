@@ -7,6 +7,7 @@ import {
   providerCategoryEnum,
   PROVIDER_CATEGORY_LABELS,
 } from "@sanctuary/db";
+import { requireSystemAdmin } from "@/lib/auth/guards";
 
 const categoryValues = Object.keys(PROVIDER_CATEGORY_LABELS) as [string, ...string[]];
 
@@ -302,6 +303,8 @@ export const providersRouter = router({
       status: z.enum(["pending", "active", "suspended"]).optional(),
     }))
     .query(async ({ ctx, input }) => {
+      await requireSystemAdmin();
+
       const conditions = input.status
         ? [eq(serviceProviders.status, input.status)]
         : [];
@@ -319,6 +322,8 @@ export const providersRouter = router({
       verified: z.boolean(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await requireSystemAdmin();
+
       const [updated] = await ctx.db
         .update(serviceProviders)
         .set({
@@ -338,6 +343,8 @@ export const providersRouter = router({
       status: z.enum(["pending", "active", "suspended"]),
     }))
     .mutation(async ({ ctx, input }) => {
+      await requireSystemAdmin();
+
       const [updated] = await ctx.db
         .update(serviceProviders)
         .set({ status: input.status })

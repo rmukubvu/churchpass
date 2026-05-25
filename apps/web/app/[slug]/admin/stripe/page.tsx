@@ -3,7 +3,7 @@
  * Stripe Connect onboarding page for church admins.
  * Shows current connection status and allows initiating/re-initiating the OAuth flow.
  */
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/server/db";
 import { churches } from "@sanctuary/db";

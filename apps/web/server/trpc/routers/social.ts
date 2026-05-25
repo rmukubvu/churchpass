@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq } from "drizzle-orm";
 import { router, protectedProcedure } from "../init";
 import { churches } from "@sanctuary/db";
+import { requireChurchAdmin } from "@/lib/auth/guards";
 
 export const socialRouter = router({
 
@@ -9,6 +10,8 @@ export const socialRouter = router({
   getConnections: protectedProcedure
     .input(z.object({ churchSlug: z.string() }))
     .query(async ({ ctx, input }) => {
+      await requireChurchAdmin(input.churchSlug);
+
       const [church] = await ctx.db
         .select({
           fbPageId: churches.fbPageId,
@@ -46,6 +49,8 @@ export const socialRouter = router({
       instagram: z.boolean(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdmin(input.churchSlug);
+
       const [church] = await ctx.db
         .select({ id: churches.id, igAccountId: churches.igAccountId })
         .from(churches)
@@ -68,6 +73,8 @@ export const socialRouter = router({
   disconnectAccount: protectedProcedure
     .input(z.object({ churchSlug: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdmin(input.churchSlug);
+
       const [church] = await ctx.db
         .select({ id: churches.id })
         .from(churches)

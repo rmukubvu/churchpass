@@ -5,6 +5,11 @@ import { events, churches } from "@sanctuary/db";
 import { geocodeAddress } from "@/lib/geocode";
 import { createId } from "@sanctuary/db";
 import { postToFacebook, postToInstagram } from "@/lib/meta";
+import {
+  requireChurchAdminForChurchId,
+  requireChurchAdminForEventId,
+  requireSystemAdmin,
+} from "@/lib/auth/guards";
 
 const categoryEnum = z.enum(["worship", "conference", "outreach", "youth", "family", "other"]);
 const locationTypeEnum = z.enum(["in_person", "virtual", "hybrid"]);
@@ -226,6 +231,8 @@ export const eventsRouter = router({
       })
     )
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdminForChurchId(ctx.db, input.churchId);
+
       let coords: { latitude?: number; longitude?: number } = {};
       if (input.location) {
         const geo = await geocodeAddress(input.location).catch(() => null);
@@ -343,6 +350,8 @@ export const eventsRouter = router({
     )
     .mutation(async ({ ctx, input }) => {
       const { eventId, ...data } = input;
+      await requireChurchAdminForEventId(ctx.db, eventId);
+
       let coords: { latitude?: number; longitude?: number } = {};
       if (data.location) {
         const geo = await geocodeAddress(data.location).catch(() => null);
@@ -363,6 +372,8 @@ export const eventsRouter = router({
   generateRecurring: protectedProcedure
     .input(z.object({ parentEventId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.parentEventId);
+
       const [parent] = await ctx.db
         .select()
         .from(events)
@@ -439,6 +450,8 @@ export const eventsRouter = router({
       sortOrder: z.number().int().min(1).max(5).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
+      await requireSystemAdmin();
+
       const featuredUntil = input.durationDays > 0
         ? new Date(Date.now() + input.durationDays * 86_400_000)
         : null;

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
 import { serviceProviders, PROVIDER_CATEGORY_LABELS } from "@sanctuary/db";
 import { desc } from "drizzle-orm";

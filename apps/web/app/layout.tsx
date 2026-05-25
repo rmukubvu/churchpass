@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
+import { AuthProvider } from "@/lib/auth/client";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -20,10 +20,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <ClerkProvider>
+    <AuthProvider>
       <html lang="en" className="dark">
         <body className={`${plusJakartaSans.variable} font-sans`}>{children}</body>
       </html>
-    </ClerkProvider>
+    </AuthProvider>
   );
 }

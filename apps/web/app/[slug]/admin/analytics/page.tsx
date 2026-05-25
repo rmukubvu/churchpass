@@ -2,7 +2,7 @@
  * /[slug]/admin/analytics
  * Per-church analytics dashboard showing RSVP trends, revenue, and check-in rates.
  */
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { db } from "@/server/db";
 import { churches, events, rsvps, checkins, payments } from "@sanctuary/db";

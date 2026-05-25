@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth, useUser, SignInButton } from "@clerk/nextjs";
+import { useAuth, useUser, SignInButton } from "@/lib/auth/client";
 import { trpc } from "@/lib/trpc-client";
 import { CheckoutModal } from "@/components/checkout/CheckoutModal";
 

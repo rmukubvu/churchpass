@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import type { Db } from "@sanctuary/db";
 import { db } from "../db";
 

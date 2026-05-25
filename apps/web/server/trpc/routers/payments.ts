@@ -1,14 +1,17 @@
 import { z } from "zod";
-import { eq, desc } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { router, protectedProcedure } from "../init";
-import { payments, rsvps, events } from "@sanctuary/db";
+import { payments, rsvps, attendees } from "@sanctuary/db";
 import { getStripe } from "@/lib/stripe";
+import { requireChurchAdminForEventId } from "@/lib/auth/guards";
 
 export const paymentsRouter = router({
   /** List all payments for an event (admin use) */
   listByEvent: protectedProcedure
     .input(z.object({ eventId: z.string() }))
     .query(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.eventId);
+
       return ctx.db
         .select({
           payment: payments,
@@ -31,6 +34,16 @@ export const paymentsRouter = router({
         .limit(1);
 
       if (!payment) throw new Error("Payment not found");
+
+      const [rsvpRow] = await ctx.db
+        .select({ eventId: rsvps.eventId })
+        .from(rsvps)
+        .where(eq(rsvps.id, payment.rsvpId))
+        .limit(1);
+      if (rsvpRow) {
+        await requireChurchAdminForEventId(ctx.db, rsvpRow.eventId);
+      }
+
       if (payment.status !== "succeeded") throw new Error("Payment is not refundable");
 
       if (!payment.stripePaymentIntentId) throw new Error("No payment intent on record");
@@ -63,8 +76,13 @@ export const paymentsRouter = router({
         .select({ payment: payments })
         .from(payments)
         .innerJoin(rsvps, eq(rsvps.id, payments.rsvpId))
-        .innerJoin(events, eq(events.id, rsvps.eventId))
-        .where(eq(rsvps.eventId, input.eventId))
+        .innerJoin(attendees, eq(attendees.id, rsvps.attendeeId))
+        .where(
+          and(
+            eq(rsvps.eventId, input.eventId),
+            eq(attendees.clerkUserId, ctx.clerkUserId)
+          )
+        )
         .limit(1);
 
       return result[0]?.payment ?? null;

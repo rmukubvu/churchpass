@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq, and, count } from "drizzle-orm";
 import { router, protectedProcedure, publicProcedure } from "../init";
 import { waitlistEntries, events, rsvps } from "@sanctuary/db";
+import { requireChurchAdminForEventId } from "@/lib/auth/guards";
 
 export const waitlistRouter = router({
   /** Join the waitlist for an event */
@@ -58,6 +59,8 @@ export const waitlistRouter = router({
   promoteNext: protectedProcedure
     .input(z.object({ eventId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.eventId);
+
       const [next] = await ctx.db
         .select()
         .from(waitlistEntries)

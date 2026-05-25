@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser } from "@/lib/auth/client";
 
 const PRESET_COLOURS = [
   { value: "#4F46E5", label: "Indigo" },

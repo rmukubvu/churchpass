@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { createClient } from "@supabase/supabase-js";
+import { auth } from "@/lib/auth";
+import { createStorageClient, uploadToPublicBucket } from "@/lib/supabase-storage";
 
 const BUCKET = "event-banners";
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -45,39 +45,18 @@ export async function POST(req: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  // Create Supabase client
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  );
-
-  // Attempt upload, auto-creating bucket on "Bucket not found"
-  async function attemptUpload() {
-    return supabase.storage
-      .from(BUCKET)
-      .upload(path, buffer, { contentType, upsert: true });
+  let supabase;
+  try {
+    supabase = createStorageClient();
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Storage not configured";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 
-  let result = await attemptUpload();
-
-  if (result.error) {
-    const msg = result.error.message ?? "";
-    if (msg.toLowerCase().includes("bucket not found") || msg.toLowerCase().includes("not found")) {
-      // Try to create the bucket then retry
-      const { error: createErr } = await supabase.storage.createBucket(BUCKET, { public: true });
-      if (createErr && !createErr.message.toLowerCase().includes("already exists")) {
-        return NextResponse.json({ error: `Could not create bucket: ${createErr.message}` }, { status: 500 });
-      }
-      result = await attemptUpload();
-    }
+  const uploaded = await uploadToPublicBucket(supabase, BUCKET, path, buffer, contentType);
+  if ("error" in uploaded) {
+    return NextResponse.json({ error: uploaded.error }, { status: 500 });
   }
 
-  if (result.error) {
-    return NextResponse.json({ error: result.error.message }, { status: 500 });
-  }
-
-  // Get the public URL
-  const { data: urlData } = supabase.storage.from(BUCKET).getPublicUrl(path);
-
-  return NextResponse.json({ url: urlData.publicUrl });
+  return NextResponse.json({ url: uploaded.publicUrl });
 }

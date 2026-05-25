@@ -2,7 +2,7 @@
  * /admin/ads — Platform admin ad review queue
  * Only accessible to users with publicMetadata.role === "admin"
  */
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { ads } from "@sanctuary/db";

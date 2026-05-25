@@ -3,6 +3,7 @@ import { eq, and } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, publicProcedure, protectedProcedure } from "../init";
 import { checkins, rsvps } from "@sanctuary/db";
+import { requireChurchAdminForEventId } from "@/lib/auth/guards";
 
 export const checkinsRouter = router({
   // Called by kiosk app — uses wallet pass token for lookup
@@ -52,6 +53,8 @@ export const checkinsRouter = router({
   manual: protectedProcedure
     .input(z.object({ rsvpId: z.string(), eventId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.eventId);
+
       const [rsvp] = await ctx.db
         .select()
         .from(rsvps)
@@ -91,6 +94,8 @@ export const checkinsRouter = router({
   undoManual: protectedProcedure
     .input(z.object({ rsvpId: z.string(), eventId: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.eventId);
+
       await ctx.db
         .delete(checkins)
         .where(and(eq(checkins.rsvpId, input.rsvpId), eq(checkins.eventId, input.eventId)));
@@ -106,6 +111,8 @@ export const checkinsRouter = router({
   list: protectedProcedure
     .input(z.object({ eventId: z.string() }))
     .query(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.eventId);
+
       return ctx.db
         .select()
         .from(checkins)

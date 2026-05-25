@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq, and, inArray, ne, count } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@/lib/auth";
 import { router, protectedProcedure } from "../init";
 import { rsvps, attendees, events, churches, type Db } from "@sanctuary/db";
 import { sendRsvpConfirmation } from "@/lib/sendgrid";

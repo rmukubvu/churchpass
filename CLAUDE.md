@@ -1,7 +1,7 @@
 # Sanctuary — Project Memory
 
 ## What this is
-A church event management platform (Next.js 16 App Router + tRPC 11 + Drizzle ORM + Clerk auth + Supabase PostgreSQL). Think Ticketmaster Travel but for church events — attendees can browse events, RSVP to multiple sessions in one shot, see nearby hotel stays, and get a branded confirmation email.
+A church event management platform (Next.js 16 App Router + tRPC 11 + Drizzle ORM + Supabase Auth + Supabase PostgreSQL). Think Ticketmaster Travel but for church events — attendees can browse events, RSVP to multiple sessions in one shot, see nearby hotel stays, and get a branded confirmation email.
 
 ## Monorepo layout
 ```
@@ -16,7 +16,7 @@ packages/types    — shared TypeScript types
 - **Next.js 16 App Router** — Server Components by default; `"use client"` only at leaf boundaries
 - **tRPC 11** — raw `fetch("/api/trpc/router.procedure", { method:"POST", body: JSON.stringify({ json: input }) })` pattern (no React Query provider)
 - **Drizzle ORM** — `inArray`, `ilike`, `onConflictDoUpdate` patterns used throughout
-- **Clerk** — `auth()` / `currentUser()` server-side; `useAuth()` client-side; `protectedProcedure` in tRPC
+- **Supabase Auth** — see `AGENTS.md` and `docs/TRPC_AUTH_MATRIX.md`
 - **Dark theme** — `#0f0f0f` bg, `#1a1a1a` cards, `#4F46E5` indigo accent
 - **SendGrid** (`@sendgrid/mail`) — transactional email; graceful no-op when `SENDGRID_API_KEY` is empty
 - **Google Places API** — nearby hotel search on event detail pages

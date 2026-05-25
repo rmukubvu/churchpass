@@ -6,7 +6,7 @@
  * Body: { eventId, tierId, clerkUserId, email, firstName, lastName }
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { db } from "@/server/db";
 import { events, churches, ticketTiers } from "@sanctuary/db";
 import { eq } from "drizzle-orm";

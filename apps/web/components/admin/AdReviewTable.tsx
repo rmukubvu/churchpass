@@ -80,6 +80,17 @@ export function AdReviewTable({ ads, showActions = true }: Props) {
                   <span>{ad.advertiserEmail}</span>
                   <span>·</span>
                   <span className="capitalize">{ad.duration.replace("_", " ")}</span>
+                  {ad.countryCode && (
+                    <>
+                      <span>·</span>
+                      <span>
+                        {ad.countryCode} · {ad.currency.toUpperCase()}
+                        {ad.amountPaid != null
+                          ? ` ${(ad.amountPaid / 100).toFixed(2)}`
+                          : ""}
+                      </span>
+                    </>
+                  )}
                   <span>·</span>
                   <a href={ad.clickUrl} target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 truncate max-w-[200px]">
                     {ad.clickUrl}

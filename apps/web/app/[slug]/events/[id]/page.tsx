@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { events, churches, rsvps, attendees } from "@sanctuary/db";
 import { eq, and, ne, count, inArray } from "drizzle-orm";
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { RsvpButton } from "@/components/rsvp/RsvpButton";
 import { MyTicket } from "@/components/rsvp/MyTicket";

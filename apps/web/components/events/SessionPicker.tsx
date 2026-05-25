@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@clerk/nextjs";
+import { useAuth } from "@/lib/auth/client";
 import type { Event } from "@sanctuary/db";
 import { cn, formatShortDate } from "@/lib/utils";
 import { trpc } from "@/lib/trpc-client";

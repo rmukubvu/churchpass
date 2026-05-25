@@ -2,6 +2,7 @@ import { z } from "zod";
 import { eq, and, asc } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../init";
 import { ticketTiers } from "@sanctuary/db";
+import { requireChurchAdminForEventId } from "@/lib/auth/guards";
 
 export const ticketTiersRouter = router({
   /** List all active tiers for an event */
@@ -34,6 +35,8 @@ export const ticketTiersRouter = router({
       })),
     }))
     .mutation(async ({ ctx, input }) => {
+      await requireChurchAdminForEventId(ctx.db, input.eventId);
+
       // Deactivate all existing tiers, then re-insert current set
       await ctx.db
         .update(ticketTiers)

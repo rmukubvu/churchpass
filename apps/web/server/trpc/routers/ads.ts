@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { eq, and, lte, gte, desc, sql } from "drizzle-orm";
 import { router, publicProcedure, protectedProcedure } from "../init";
-import { ads, AD_PRICES } from "@sanctuary/db";
+import { ads } from "@sanctuary/db";
+import { AD_MARKETS } from "@/lib/ad-markets";
+import { requireSystemAdmin } from "@/lib/auth/guards";
 
 const now = () => new Date();
 
@@ -54,6 +56,8 @@ export const adsRouter = router({
 
   /** Platform admin: all ads pending review */
   pendingReview: protectedProcedure.query(async ({ ctx }) => {
+    await requireSystemAdmin();
+
     return ctx.db
       .select()
       .from(ads)
@@ -63,6 +67,8 @@ export const adsRouter = router({
 
   /** Platform admin: all ads */
   all: protectedProcedure.query(async ({ ctx }) => {
+    await requireSystemAdmin();
+
     return ctx.db
       .select()
       .from(ads)
@@ -74,6 +80,8 @@ export const adsRouter = router({
   approve: protectedProcedure
     .input(z.object({ adId: z.string(), sortOrder: z.number().int().min(1).max(10).default(5) }))
     .mutation(async ({ ctx, input }) => {
+      await requireSystemAdmin();
+
       const [ad] = await ctx.db.select().from(ads).where(eq(ads.id, input.adId)).limit(1);
       if (!ad) throw new Error("Ad not found");
 
@@ -100,6 +108,8 @@ export const adsRouter = router({
   reject: protectedProcedure
     .input(z.object({ adId: z.string(), reason: z.string().optional() }))
     .mutation(async ({ ctx, input }) => {
+      await requireSystemAdmin();
+
       const [updated] = await ctx.db
         .update(ads)
         .set({
@@ -114,5 +124,5 @@ export const adsRouter = router({
     }),
 
   /** Get pricing info (public) */
-  pricing: publicProcedure.query(() => AD_PRICES),
+  pricing: publicProcedure.query(() => AD_MARKETS),
 });

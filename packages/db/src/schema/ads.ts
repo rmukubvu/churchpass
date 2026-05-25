@@ -24,6 +24,8 @@ export const ads = pgTable("ads", {
   // Advertiser info
   advertiserName: text("advertiser_name").notNull(),
   advertiserEmail: text("advertiser_email").notNull(),
+  countryCode: text("country_code").notNull().default("GB"),
+  currency: text("currency").notNull().default("gbp"),
   clerkUserId: text("clerk_user_id"),
 
   // Creative
@@ -62,9 +64,9 @@ export const ads = pgTable("ads", {
 export type Ad = typeof ads.$inferSelect;
 export type NewAd = typeof ads.$inferInsert;
 
-// Pricing in pence (GBP)
+/** @deprecated Use `getAdPrice` from `apps/web/lib/ad-markets` — GB defaults kept for imports */
 export const AD_PRICES: Record<string, number> = {
-  one_week: 4900,     // £49
-  two_weeks: 8900,    // £89
-  four_weeks: 14900,  // £149
+  one_week: 4900,
+  two_weeks: 8900,
+  four_weeks: 14900,
 };

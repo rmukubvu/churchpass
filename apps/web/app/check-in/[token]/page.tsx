@@ -105,6 +105,13 @@ export default async function CheckInPage({ params }: Props) {
                 {event.location && (
                   <p className="text-xs text-white/30 mt-0.5">{event.location}</p>
                 )}
+
+                {/* Date Check Warning */}
+                {new Date().toDateString() !== event.startsAt.toDateString() && (
+                  <div className="mt-3 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-400 font-semibold inline-block">
+                    ⚠️ Warning: Not scheduled for today!
+                  </div>
+                )}
               </div>
 
               {/* Divider */}

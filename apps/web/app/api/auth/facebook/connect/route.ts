@@ -5,7 +5,7 @@
  *         instagram_basic, instagram_content_publish
  */
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://churchpass.events";
 

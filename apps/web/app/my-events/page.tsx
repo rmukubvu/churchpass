@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { rsvps, attendees, events, churches, checkins } from "@sanctuary/db";

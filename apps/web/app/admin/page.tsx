@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/server";
+import { currentUser } from "@/lib/auth";
 
 export default async function AdminDashboardPage() {
   const user = await currentUser();
