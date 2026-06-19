@@ -4,6 +4,7 @@ import {
   type RsvpConfirmationData,
   type RsvpEventSummary,
 } from "./email-templates/rsvp-confirmation";
+import { buildOtpEmail } from "./email-templates/otp-verification";
 import { generateQrDataUrl, checkInUrl } from "./qrcode";
 
 const apiKey = process.env.SENDGRID_API_KEY;
@@ -88,3 +89,25 @@ export async function sendRsvpConfirmation(
     ...(attachments.length > 0 && { attachments }),
   } as sgMail.MailDataRequired);
 }
+
+export async function sendOtpEmail(email: string, code: string): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const { subject, html, text } = buildOtpEmail({ email, code, appUrl });
+
+  if (!apiKey) {
+    console.log("[sendgrid] No API key — skipping OTP email send");
+    console.log("[sendgrid] To:", email);
+    console.log("[sendgrid] Subject:", subject);
+    console.log("[sendgrid] Body preview:\n", text.slice(0, 400));
+    return;
+  }
+
+  await sgMail.send({
+    to: email,
+    from: { email: fromEmail, name: "Church Pass" },
+    subject,
+    html,
+    text,
+  });
+}
+

@@ -31,27 +31,17 @@ export default function SignUpPage() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            firstName: firstName.trim(),
-            lastName: lastName.trim(),
-            role: "user",
-            adminOf: [],
-          },
-        },
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) {
-        setError(error.message);
-      } else if (data.session) {
-        // Logged in immediately (email confirmation disabled or auto-confirm)
-        router.push(redirectUrl);
-        router.refresh();
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to send verification email. Please try again.");
       } else {
-        // Email confirmation / OTP verification required
         setSuccess(true);
       }
     } catch (err: any) {
@@ -67,20 +57,41 @@ export default function SignUpPage() {
     setVerifying(true);
 
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token: otpCode.trim(),
-        type: "signup",
+      // 1. Verify OTP and create user in database
+      const regRes = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email,
+          password,
+          code: otpCode.trim(),
+        }),
       });
 
-      if (error) {
-        setVerifyError(error.message);
+      const regData = await regRes.json();
+
+      if (!regRes.ok) {
+        setVerifyError(regData.error || "Registration failed. Please check the code and try again.");
+        setVerifying(false);
+        return;
+      }
+
+      // 2. Perform client-side sign-in to establish session cookies
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) {
+        setVerifyError(signInError.message);
       } else {
         router.push(redirectUrl);
         router.refresh();
       }
     } catch (err: any) {
-      setVerifyError("Verification failed. Please check the code and try again.");
+      setVerifyError("An unexpected error occurred during verification.");
     } finally {
       setVerifying(false);
     }
