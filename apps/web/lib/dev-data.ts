@@ -47,6 +47,9 @@ export const devChurch: Church = {
   igAccountId: null,
   autoPostFacebook: false,
   autoPostInstagram: false,
+  isVerified: false,
+  verifiedAt: null,
+  verifiedBy: null,
   createdAt: new Date("2025-01-01T00:00:00Z"),
 };
 

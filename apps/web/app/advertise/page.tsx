@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { AdImageUpload } from "@/components/advertise/AdImageUpload";
 import {
@@ -17,14 +18,18 @@ const inputCls =
 
 const DURATIONS: AdDuration[] = ["one_week", "two_weeks", "four_weeks"];
 
-export default function AdvertisePage() {
+function AdvertiseContent() {
   const [step, setStep] = useState<"info" | "creative" | "review">("info");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const searchParams = useSearchParams();
+  const initialName = searchParams.get("name") || "";
+  const initialEmail = searchParams.get("email") || "";
+
   const [form, setForm] = useState({
-    advertiserName: "",
-    advertiserEmail: "",
+    advertiserName: initialName,
+    advertiserEmail: initialEmail,
     countryCode: DEFAULT_AD_COUNTRY,
     duration: "two_weeks" as AdDuration,
     imageUrl: "",
@@ -401,5 +406,17 @@ export default function AdvertisePage() {
         </p>
       </main>
     </div>
+  );
+}
+
+export default function AdvertisePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#0a0a0f] flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin" />
+      </div>
+    }>
+      <AdvertiseContent />
+    </Suspense>
   );
 }

@@ -24,14 +24,14 @@ export default async function NewEventPage({ params }: Props) {
   let church;
   try {
     const [found] = await db
-      .select({ id: churches.id, name: churches.name, slug: churches.slug, brandColour: churches.brandColour, fbPageId: churches.fbPageId })
+      .select({ id: churches.id, name: churches.name, slug: churches.slug, brandColour: churches.brandColour, fbPageId: churches.fbPageId, isVerified: churches.isVerified })
       .from(churches)
       .where(eq(churches.slug, slug))
       .limit(1);
     church = found;
   } catch {
     // Dev fallback
-    church = { id: "dev-church-1", name: "Koinonia", slug, brandColour: "#4F46E5", fbPageId: null };
+    church = { id: "dev-church-1", name: "Koinonia", slug, brandColour: "#4F46E5", fbPageId: null, isVerified: false };
   }
 
   if (!church) notFound();
@@ -56,7 +56,7 @@ export default async function NewEventPage({ params }: Props) {
             className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider px-3 py-1.5 rounded-full mb-4"
             style={{ backgroundColor: church.brandColour + "22", color: church.brandColour }}
           >
-            <svg className="w-3 h-3" viewBox="0 0 16 16" fill="none">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 16 16" fill="none">
               <path
                 d="M8 2v12M2 8h12"
                 stroke="currentColor"
@@ -79,6 +79,7 @@ export default async function NewEventPage({ params }: Props) {
             churchId={church.id}
             churchSlug={slug}
             hasSocialConnected={!!church.fbPageId}
+            isVerified={church.isVerified}
           />
         </div>
       </div>

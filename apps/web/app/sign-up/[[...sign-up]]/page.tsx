@@ -10,9 +10,16 @@ export default function SignUpPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // OTP Verification States
+  const [otpCode, setOtpCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [verifyError, setVerifyError] = useState<string | null>(null);
+
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -44,7 +51,7 @@ export default function SignUpPage() {
         router.push(redirectUrl);
         router.refresh();
       } else {
-        // Check if email confirmation is required
+        // Email confirmation / OTP verification required
         setSuccess(true);
       }
     } catch (err: any) {
@@ -54,23 +61,86 @@ export default function SignUpPage() {
     }
   };
 
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setVerifyError(null);
+    setVerifying(true);
+
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email,
+        token: otpCode.trim(),
+        type: "signup",
+      });
+
+      if (error) {
+        setVerifyError(error.message);
+      } else {
+        router.push(redirectUrl);
+        router.refresh();
+      }
+    } catch (err: any) {
+      setVerifyError("Verification failed. Please check the code and try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   if (success) {
     return (
       <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-4">
-        <div className="w-full max-w-md text-center">
-          <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-            <svg className="w-6 h-6 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 19v-8.93a2 2 0 01.89-1.664l8-4a2 2 0 011.78 0l8 4A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-2.25-1.5a2 2 0 00-2.5 0l-2.25 1.5" />
-            </svg>
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 19v-8.93a2 2 0 01.89-1.664l8-4a2 2 0 011.78 0l8 4A2 2 0 0121 10.07V19M3 19a2 2 0 002 2h14a2 2 0 002-2M3 19l6.75-4.5M21 19l-6.75-4.5M3 10l6.75 4.5M21 10l-6.75 4.5m0 0l-2.25-1.5a2 2 0 00-2.5 0l-2.25 1.5" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-white">Verify your email</h1>
+            <p className="text-white/40 text-sm mt-2 max-w-sm mx-auto">
+              We sent a 6-digit verification code to <span className="text-white font-semibold">{email}</span>. Please enter it below.
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-white">Check your email</h1>
-          <p className="text-white/40 text-sm mt-2 max-w-sm mx-auto">
-            We sent a verification link to <span className="text-white font-medium">{email}</span>. Click the link to complete registration.
-          </p>
-          <div className="mt-8">
-            <Link href="/sign-in" className="text-sm font-semibold text-indigo-400 hover:text-indigo-300">
-              Back to sign in
-            </Link>
+
+          <div className="bg-[#1a1a1a] border border-white/5 shadow-2xl rounded-2xl p-8">
+            {verifyError && (
+              <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+                {verifyError}
+              </div>
+            )}
+
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <div>
+                <label className="block text-white/60 text-xs font-semibold uppercase tracking-wider mb-2">
+                  Verification Code
+                </label>
+                <input
+                  type="text"
+                  required
+                  maxLength={6}
+                  pattern="[0-9a-zA-Z]{6}"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm text-center font-bold tracking-widest text-lg"
+                  placeholder="123456"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={verifying}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-colors text-sm mt-2 flex items-center justify-center disabled:opacity-50"
+              >
+                {verifying ? (
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  "Verify & Sign Up"
+                )}
+              </button>
+            </form>
           </div>
         </div>
       </div>
@@ -86,8 +156,13 @@ export default function SignUpPage() {
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">Create your account</h1>
-          <p className="text-white/40 text-sm mt-1">Join to RSVP for church events</p>
+          <h1 className="text-2xl font-bold text-white">Create your attendee account</h1>
+          <p className="text-white/40 text-sm mt-1">
+            RSVP for church events ·{" "}
+            <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold underline">
+              Host events instead
+            </Link>
+          </p>
         </div>
 
         <div className="bg-[#1a1a1a] border border-white/5 shadow-2xl rounded-2xl p-8">
@@ -145,14 +220,32 @@ export default function SignUpPage() {
               <label className="block text-white/60 text-xs font-semibold uppercase tracking-wider mb-2">
                 Password
               </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-[#252525] border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm"
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full bg-[#252525] border border-white/10 rounded-xl pl-4 pr-10 py-3 text-white placeholder:text-white/20 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm"
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors"
+                >
+                  {showPassword ? (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
             <button

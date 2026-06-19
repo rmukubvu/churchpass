@@ -233,6 +233,17 @@ export const eventsRouter = router({
     .mutation(async ({ ctx, input }) => {
       await requireChurchAdminForChurchId(ctx.db, input.churchId);
 
+      // Verify safety for paid event creation
+      const [church] = await ctx.db
+        .select({ isVerified: churches.isVerified })
+        .from(churches)
+        .where(eq(churches.id, input.churchId))
+        .limit(1);
+
+      if (input.ticketType === "paid" && (!church || !church.isVerified)) {
+        throw new Error("Your account must be verified before you can create paid events.");
+      }
+
       let coords: { latitude?: number; longitude?: number } = {};
       if (input.location) {
         const geo = await geocodeAddress(input.location).catch(() => null);
@@ -351,6 +362,27 @@ export const eventsRouter = router({
     .mutation(async ({ ctx, input }) => {
       const { eventId, ...data } = input;
       await requireChurchAdminForEventId(ctx.db, eventId);
+
+      // Verify safety for paid event updating
+      if (data.ticketType === "paid") {
+        const [event] = await ctx.db
+          .select({ churchId: events.churchId })
+          .from(events)
+          .where(eq(events.id, eventId))
+          .limit(1);
+
+        if (event) {
+          const [church] = await ctx.db
+            .select({ isVerified: churches.isVerified })
+            .from(churches)
+            .where(eq(churches.id, event.churchId))
+            .limit(1);
+
+          if (!church || !church.isVerified) {
+            throw new Error("Your account must be verified before you can change an event's pricing to Paid.");
+          }
+        }
+      }
 
       let coords: { latitude?: number; longitude?: number } = {};
       if (data.location) {

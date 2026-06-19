@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { BannerUpload } from "./BannerUpload";
 import { LocationAutocomplete } from "./LocationAutocomplete";
@@ -58,6 +58,7 @@ type Props = {
   churchId: string;
   churchSlug: string;
   hasSocialConnected?: boolean;
+  isVerified?: boolean;
 };
 
 // ─── Shared field components ──────────────────────────────────────────────────
@@ -105,8 +106,12 @@ function Toggle({ label, description, checked, onChange }: {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = false }: Props) {
+export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = false, isVerified = false }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tmplType = searchParams.get("type");
+  const tmplPricing = searchParams.get("pricing");
+
   const [step, setStep] = useState<Step>("basics");
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -134,7 +139,7 @@ export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = fal
   const [timezone, setTimezone] = useState("Europe/London");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
-  const [isRecurring, setIsRecurring] = useState(false);
+  const [isRecurring, setIsRecurring] = useState(tmplType === "recurring");
   const [recurringFrequency, setRecurringFrequency] = useState<"weekly" | "biweekly" | "monthly">("weekly");
   const [recurringEndsAfter, setRecurringEndsAfter] = useState("4");
 
@@ -143,7 +148,11 @@ export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = fal
   const [waitlistEnabled, setWaitlistEnabled] = useState(false);
   const [waitlistCapacity, setWaitlistCapacity] = useState("");
   const [waitlistAutoPromote, setWaitlistAutoPromote] = useState(true);
-  const [ticketType, setTicketType] = useState<"free" | "paid" | "donation">("free");
+  const [ticketType, setTicketType] = useState<"free" | "paid" | "donation">(() => {
+    if (tmplPricing === "paid" && isVerified) return "paid";
+    if (tmplPricing === "donation") return "donation";
+    return "free";
+  });
   const [tiers, setTiers] = useState<TicketTierDraft[]>([{ name: "General Admission", price: 0 }]);
   const [processingFeeMode, setProcessingFeeMode] = useState<"absorb" | "pass">("absorb");
   const [refundPolicy, setRefundPolicy] = useState<"none" | "full" | "custom">("none");
@@ -169,6 +178,10 @@ export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = fal
 
   async function handleSubmit() {
     if (!title.trim() || !startsAt || !endsAt) return;
+    if (ticketType === "paid" && !isVerified) {
+      setErrorMsg("Your account must be verified before you can create paid events.");
+      return;
+    }
     setSaving(true);
     setErrorMsg("");
     try {
@@ -508,16 +521,43 @@ export function CreateEventForm({ churchId, churchSlug, hasSocialConnected = fal
                 { value: "free",     label: "Free",     icon: "🎟️" },
                 { value: "paid",     label: "Paid",     icon: "💳" },
                 { value: "donation", label: "Donation", icon: "❤️" },
-              ] as const).map((t) => (
-                <button key={t.value} type="button" onClick={() => setTicketType(t.value)}
-                  className={cn("p-4 rounded-xl border text-center transition-colors",
-                    ticketType === t.value ? "bg-indigo-600/10 border-indigo-500/40" : "bg-[#1a1a1a] border-white/5 hover:border-white/10"
-                  )}>
-                  <span className="text-xl">{t.icon}</span>
-                  <p className="text-xs font-medium text-white mt-1">{t.label}</p>
-                </button>
-              ))}
+              ] as const).map((t) => {
+                const disabled = t.value === "paid" && !isVerified;
+                return (
+                  <button
+                    key={t.value}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => setTicketType(t.value)}
+                    className={cn(
+                      "p-4 rounded-xl border text-center transition-colors relative",
+                      ticketType === t.value
+                        ? "bg-indigo-600/10 border-indigo-500/40"
+                        : "bg-[#1a1a1a] border-white/5 hover:border-white/10",
+                      disabled && "opacity-40 cursor-not-allowed hover:border-white/5"
+                    )}
+                  >
+                    <span className="text-xl">{t.icon}</span>
+                    <p className="text-xs font-medium text-white mt-1 flex items-center justify-center gap-1">
+                      {t.label}
+                      {disabled && (
+                        <svg className="w-2.5 h-2.5 text-amber-400" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M8 1a3 3 0 013 3v3h.5A1.5 1.5 0 0113 8.5v5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 013 13.5v-5A1.5 1.5 0 014.5 7H5V4a3 3 0 013-3zm2 6V4a2 2 0 10-4 0v3h4z" />
+                        </svg>
+                      )}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
+            {!isVerified && (
+              <p className="text-xs text-amber-400/80 mt-3 flex items-center gap-1.5 bg-amber-400/5 border border-amber-400/10 rounded-xl p-3">
+                <svg className="w-4 h-4 flex-none animate-pulse" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M8 1a3 3 0 013 3v3h.5A1.5 1.5 0 0113 8.5v5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 013 13.5v-5A1.5 1.5 0 014.5 7H5V4a3 3 0 013-3zm2 6V4a2 2 0 10-4 0v3h4z" />
+                </svg>
+                Paid ticket sales are locked. Your profile must be verified before you can publish paid events.
+              </p>
+            )}
           </div>
 
           {/* Paid — ticket tiers */}

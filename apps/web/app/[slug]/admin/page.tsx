@@ -141,6 +141,25 @@ export default async function AdminOverviewPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Verification alert card */}
+        {!church.isVerified && (
+          <div className="mb-8 p-5 rounded-2xl border border-amber-500/10 bg-amber-500/5 backdrop-blur-sm flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 flex-shrink-0">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m0-6h.01M5.071 19h13.858c1.395 0 2.247-1.52 1.52-2.708l-6.93-11.83C12.817 3.28 11.18 3.28 10.48 4.46L3.55 16.29c-.727 1.187.125 2.708 1.52 2.708z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-400 flex items-center gap-1.5">
+                Verification Required for Ticket Sales
+              </h3>
+              <p className="text-xs text-white/60 mt-1 max-w-2xl leading-relaxed">
+                Your profile is currently under review by our safety team. To protect attendees from fraud, you can create and publish free events, but paid event ticket sales will remain locked until your ID or registration certificate is approved.
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Stats strip */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-10">
           {[
@@ -160,6 +179,112 @@ export default async function AdminOverviewPage({ params }: Props) {
               <p className="text-xs text-white/40 mt-0.5">{stat.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Quick Actions (Luma-inspired Event Hub) */}
+        <div className="mb-10">
+          <h2 className="text-lg font-bold text-white mb-4">Event Templates</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                title: "One-Time Event (Free)",
+                desc: "A single session event like a service, workshop or meetup.",
+                features: ["Free RSVP", "Capacity Limit", "Waitlists"],
+                href: `/${slug}/admin/events/new?type=onetime&pricing=free`,
+                locked: false,
+                btnText: "Create Free Event"
+              },
+              {
+                title: "One-Time Event (Paid)",
+                desc: "A single ticketed event. Sell multiple custom ticket tiers.",
+                features: ["Paid Tickets", "Custom Tiers", "Capacity Control"],
+                href: `/${slug}/admin/events/new?type=onetime&pricing=paid`,
+                locked: !church.isVerified,
+                btnText: "Create Paid Event"
+              },
+              {
+                title: "Recurring Event (Free)",
+                desc: "A repeating weekly or monthly gathering (e.g. services, groups).",
+                features: ["Repeating Sessions", "Free RSVP", "Capacity Limit"],
+                href: `/${slug}/admin/events/new?type=recurring&pricing=free`,
+                locked: false,
+                btnText: "Create Recurring"
+              },
+              {
+                title: "Recurring Event (Paid)",
+                desc: "A ticketed series or repeating paid class sessions.",
+                features: ["Repeating Sessions", "Paid Tickets", "Capacity Control"],
+                href: `/${slug}/admin/events/new?type=recurring&pricing=paid`,
+                locked: !church.isVerified,
+                btnText: "Create Recurring Paid"
+              }
+            ].map((tmpl, idx) => (
+              <div
+                key={idx}
+                className="bg-[#1a1a1a] border border-white/5 hover:border-white/10 rounded-2xl p-5 flex flex-col justify-between transition-all"
+              >
+                <div>
+                  <div className="flex items-start justify-between">
+                    <h3 className="text-sm font-bold text-white leading-snug">{tmpl.title}</h3>
+                    {tmpl.locked && (
+                      <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <svg className="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 16 16">
+                          <path d="M8 1a3 3 0 013 3v3h.5A1.5 1.5 0 0113 8.5v5a1.5 1.5 0 01-1.5 1.5h-7A1.5 1.5 0 013 13.5v-5A1.5 1.5 0 014.5 7H5V4a3 3 0 013-3zm2 6V4a2 2 0 10-4 0v3h4z" />
+                        </svg>
+                        Locked
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-white/40 mt-1.5 leading-relaxed">{tmpl.desc}</p>
+                  
+                  <div className="mt-4 flex flex-wrap gap-1.5">
+                    {tmpl.features.map((f, fIdx) => (
+                      <span key={fIdx} className="text-[9px] font-medium text-white/50 bg-white/5 px-2 py-1 rounded-md">
+                        ✓ {f}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  {tmpl.locked ? (
+                    <div className="text-[11px] text-amber-400/80 text-center font-medium bg-amber-400/5 border border-amber-400/10 py-2 rounded-xl">
+                      Requires Verification
+                    </div>
+                  ) : (
+                    <Link
+                      href={tmpl.href}
+                      className="block text-center text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 py-2.5 rounded-xl transition-all"
+                    >
+                      {tmpl.btnText}
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Promotion & Advertising Card */}
+        <div className="mb-10 bg-gradient-to-r from-indigo-950/20 via-[#151525] to-amber-950/10 border border-white/5 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="max-w-xl">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-1 rounded-full mb-3 inline-block">
+              ★ Grow Your Audience
+            </span>
+            <h3 className="text-lg font-bold text-white">Promote your events on ChurchPass</h3>
+            <p className="text-xs text-white/40 mt-1 leading-relaxed">
+              Create rotating banner ads featured directly on our homepage slider. Reach thousands of local event attendees looking for services, conferences, and community gatherings.
+            </p>
+          </div>
+          <Link
+            href={`/advertise?name=${encodeURIComponent(church.name)}&email=${encodeURIComponent(church.publicEmail || "")}`}
+            className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs px-5 py-3 rounded-xl transition-all flex-shrink-0"
+          >
+            Create Banner Advert
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </Link>
         </div>
 
         {/* Upcoming events */}

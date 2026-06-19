@@ -18,6 +18,7 @@ type OrgData = {
   description: string;
   foundedYear: string;
   website: string;
+  registrationDocUrl: string;
   // Step 3 — org details
   denomination: string;
   primaryLanguage: string;
@@ -51,10 +52,18 @@ type ProviderData = {
 
 type IndividualData = {
   legalName: string;
+  slug: string;
+  slugManual: boolean;
+  contactEmail: string;
+  contactPhone: string;
   idType: "passport" | "drivers_license" | "national_id" | "other";
+  idDocUrl: string;
   description: string;
   role: "artist" | "musician" | "organizer" | "speaker" | "volunteer" | "other";
   address: string;
+  website: string;
+  instagramHandle: string;
+  twitterHandle: string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -166,14 +175,16 @@ export function RegisterWizard() {
 
   const [org, setOrg] = useState<OrgData>({
     name: "", slug: "", slugManual: false, brandColour: "#4F46E5",
-    description: "", foundedYear: "", website: "",
+    description: "", foundedYear: "", website: "", registrationDocUrl: "",
     denomination: "", primaryLanguage: "English", congregationSize: "",
     instagramHandle: "", twitterHandle: "", facebookHandle: "", youtubeHandle: "",
     address: "", locationType: "physical", publicEmail: "", publicPhone: "",
   });
 
   const [ind, setInd] = useState<IndividualData>({
-    legalName: "", idType: "passport", description: "", role: "organizer", address: "",
+    legalName: "", slug: "", slugManual: false, contactEmail: user?.primaryEmailAddress?.emailAddress ?? "", contactPhone: "",
+    idType: "passport", idDocUrl: "", description: "", role: "organizer", address: "",
+    website: "", instagramHandle: "", twitterHandle: "",
   });
 
   const [prov, setProv] = useState<ProviderData>({
@@ -211,6 +222,7 @@ export function RegisterWizard() {
           description: org.description,
           foundedYear: org.foundedYear ? parseInt(org.foundedYear) : undefined,
           website: org.website,
+          registrationDocUrl: org.registrationDocUrl || undefined,
           denomination: org.denomination,
           primaryLanguage: org.primaryLanguage,
           congregationSize: org.congregationSize,
@@ -277,9 +289,10 @@ export function RegisterWizard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(ind),
       });
-      const data = await res.json() as { id?: string; error?: string };
+      const data = await res.json() as { slug?: string; error?: string };
       if (!res.ok) { setError(data.error ?? "Something went wrong"); return; }
-      router.push("/my-events?registered=1");
+      await user?.reload();
+      window.location.href = `/${data.slug}/admin`;
     } catch { setError("Network error. Please try again."); }
     finally { setLoading(false); }
   }
@@ -297,31 +310,33 @@ export function RegisterWizard() {
             {
               type: "org" as const,
               icon: "🏛️",
-              title: "Organisation",
-              desc: "A church, ministry, or non-profit that runs events and needs a public page.",
+              title: "Business / Organisation",
+              desc: "A church, ministry, non-profit or company running events on a public page.",
             },
             {
               type: "individual" as const,
               icon: "👤",
-              title: "Individual",
-              desc: "An artist, musician, speaker, or organizer working independently.",
+              title: "Personal Profile",
+              desc: "An independent organiser, speaker, artist, or solo host running personal events.",
             },
             {
               type: "provider" as const,
               icon: "🏢",
               title: "Service Provider",
-              desc: "A business offering AV, catering, chairs, photography, or other event services.",
+              desc: "A business offering AV, catering, chairs, photography, or event services.",
             },
           ].map(({ type, icon, title, desc }) => (
             <button
               key={type}
               onClick={() => setAccountType(type)}
-              className="group text-left rounded-2xl border border-white/8 bg-white/2 hover:border-indigo-500/60 hover:bg-indigo-500/5 p-6 transition-all"
+              className="group text-left rounded-2xl border border-white/8 bg-white/2 hover:border-indigo-500/60 hover:bg-indigo-500/5 p-6 transition-all flex flex-col justify-between"
             >
-              <div className="text-3xl mb-3">{icon}</div>
-              <p className="text-base font-bold text-white mb-1">{title}</p>
-              <p className="text-sm text-white/40 leading-relaxed">{desc}</p>
-              <div className="mt-4 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 transition-colors">
+              <div>
+                <div className="text-3xl mb-3">{icon}</div>
+                <p className="text-base font-bold text-white mb-1">{title}</p>
+                <p className="text-sm text-white/40 leading-relaxed">{desc}</p>
+              </div>
+              <div className="mt-6 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 transition-colors">
                 Register as {title} →
               </div>
             </button>
@@ -331,7 +346,7 @@ export function RegisterWizard() {
     );
   }
 
-  // ── Organisation flow ──────────────────────────────────────────────────────
+  // ── Business / Organisation flow ──────────────────────────────────────────────────
   if (accountType === "org") {
     const orgStepLabels = ["Basics", "Profile", "Details", "Location"];
 
@@ -397,7 +412,7 @@ export function RegisterWizard() {
             <h2 className="text-lg font-bold text-white">Organisation profile</h2>
 
             <div>
-              <Label hint="Shown on your public church page">Description</Label>
+              <Label hint="Tell people about your church/organisation — mission, values…">Description</Label>
               <textarea className={`${inputCls} resize-none`} rows={3} placeholder="Tell people about your church — mission, values, what to expect…"
                 value={org.description} onChange={(e) => setO("description", e.target.value)} />
             </div>
@@ -413,6 +428,14 @@ export function RegisterWizard() {
                 <input className={inputCls} placeholder="https://yourchurch.com"
                   value={org.website} onChange={(e) => setO("website", e.target.value)} />
               </div>
+            </div>
+
+            <div>
+              <Label hint="Scanned copy or URL of certificate of incorporation / charity status. Required to sell paid tickets.">
+                Registration Certificate / Document URL
+              </Label>
+              <input className={inputCls} placeholder="https://example.com/certificate.pdf"
+                value={org.registrationDocUrl} onChange={(e) => setO("registrationDocUrl", e.target.value)} />
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -542,6 +565,138 @@ export function RegisterWizard() {
                 disabled={loading}
                 className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
                 {loading ? <><Spinner /> Creating…</> : "Create organisation →"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Personal Organizer flow ────────────────────────────────────────────────────────
+  if (accountType === "individual") {
+    const indStepLabels = ["Profile Basics", "Verification & Bio"];
+
+    return (
+      <div>
+        <button onClick={() => setAccountType(null)} className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 mb-6 transition-colors">
+          ← Back
+        </button>
+        <StepBar current={indStep} total={2} labels={indStepLabels} />
+
+        {/* Step 1: Basics */}
+        {indStep === 1 && (
+          <div className="space-y-5">
+            <h2 className="text-lg font-bold text-white">Personal profile basics</h2>
+
+            <div>
+              <Label>Legal name <span className="text-red-400">*</span></Label>
+              <input className={inputCls} placeholder="John Doe"
+                value={ind.legalName} onChange={(e) => {
+                  const v = e.target.value;
+                  setI("legalName", v);
+                  if (!ind.slugManual) setI("slug", toSlug(v));
+                }} />
+            </div>
+
+            <div>
+              <Label hint={`churchpass.events/${ind.slug || "your-space"}`}>URL handle <span className="text-red-400">*</span></Label>
+              <input className={inputCls} placeholder="john-doe"
+                value={ind.slug} onChange={(e) => { setI("slugManual", true); setI("slug", toSlug(e.target.value)); }} />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Contact email <span className="text-red-400">*</span></Label>
+                <input className={inputCls} type="email" placeholder="john@example.com"
+                  value={ind.contactEmail} onChange={(e) => setI("contactEmail", e.target.value)} />
+              </div>
+              <div>
+                <Label>Phone number</Label>
+                <input className={inputCls} type="tel" placeholder="+44 7700 900000"
+                  value={ind.contactPhone} onChange={(e) => setI("contactPhone", e.target.value)} />
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">{error}</p>}
+
+            <button
+              onClick={() => {
+                if (!ind.legalName.trim()) { setError("Legal name is required."); return; }
+                if (!ind.slug.trim()) { setError("URL handle is required."); return; }
+                if (!ind.contactEmail.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ind.contactEmail)) { setError("Valid email is required."); return; }
+                setError(null);
+                setIndStep(2);
+              }}
+              className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors">
+              Continue →
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Verification details */}
+        {indStep === 2 && (
+          <div className="space-y-5">
+            <h2 className="text-lg font-bold text-white">Verification & Bio</h2>
+
+            <div>
+              <Label>Your role <span className="text-red-400">*</span></Label>
+              <div className="grid grid-cols-3 gap-2">
+                {ROLES.map(({ value, label }) => (
+                  <button key={value} type="button"
+                    onClick={() => setI("role", value)}
+                    className={`py-2 px-3 rounded-xl border text-xs font-semibold text-center transition-all ${ind.role === value ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <Label hint="Brief description of what you do, your services or ministry">Short Bio</Label>
+              <textarea className={`${inputCls} resize-none`} rows={3}
+                placeholder="Gospel musician and solo event organizer based in London…"
+                value={ind.description} onChange={(e) => setI("description", e.target.value)} />
+            </div>
+
+            <div>
+              <Label>Address / City</Label>
+              <input className={inputCls} placeholder="London, UK"
+                value={ind.address} onChange={(e) => setI("address", e.target.value)} />
+            </div>
+
+            <div className="border-t border-white/5 pt-4">
+              <Label hint="We verify identity to prevent scams and unlock ticketing.">
+                ID Document URL (Passport/Driver's Licence Copy) <span className="text-red-400">*</span>
+              </Label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
+                <div className="col-span-1">
+                  <select className={selectCls} value={ind.idType} onChange={(e) => setI("idType", e.target.value as any)}>
+                    {ID_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </div>
+                <div className="col-span-2">
+                  <input className={inputCls} placeholder="https://example.com/id-scan.jpg"
+                    value={ind.idDocUrl} onChange={(e) => setI("idDocUrl", e.target.value)} />
+                </div>
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">{error}</p>}
+
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setIndStep(1)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-semibold text-sm hover:bg-white/5 transition-colors">
+                ← Back
+              </button>
+              <button
+                onClick={() => {
+                  if (!ind.idDocUrl.trim()) { setError("Government ID document URL is required for safety verification."); return; }
+                  setError(null);
+                  submitIndividual();
+                }}
+                disabled={loading}
+                className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
+                {loading ? <><Spinner /> Submitting…</> : "Complete registration →"}
               </button>
             </div>
           </div>
@@ -690,98 +845,7 @@ export function RegisterWizard() {
     );
   }
 
-  // ── Individual flow ────────────────────────────────────────────────────────
-  const indStepLabels = ["Identity", "Profile"];
-
-  return (
-    <div>
-      <button onClick={() => setAccountType(null)} className="flex items-center gap-1 text-xs text-white/30 hover:text-white/60 mb-6 transition-colors">
-        ← Back
-      </button>
-      <StepBar current={indStep} total={2} labels={indStepLabels} />
-
-      {/* Step 1: Identity */}
-      {indStep === 1 && (
-        <div className="space-y-5">
-          <h2 className="text-lg font-bold text-white">Your identity</h2>
-
-          <div>
-            <Label hint="Exactly as shown on your ID document">Legal name <span className="text-red-400">*</span></Label>
-            <input className={inputCls} placeholder="John Doe"
-              value={ind.legalName} onChange={(e) => setI("legalName", e.target.value)} />
-          </div>
-
-          <div>
-            <Label>ID type</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {ID_TYPES.map(({ value, label }) => (
-                <button key={value} type="button"
-                  onClick={() => setI("idType", value)}
-                  className={`py-2.5 px-3 rounded-xl border text-sm font-medium text-left transition-all ${ind.idType === value ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <Label>Your role <span className="text-red-400">*</span></Label>
-            <div className="grid grid-cols-2 gap-2">
-              {ROLES.map(({ value, label }) => (
-                <button key={value} type="button"
-                  onClick={() => setI("role", value)}
-                  className={`py-2.5 px-3 rounded-xl border text-sm font-medium text-left transition-all ${ind.role === value ? "border-indigo-500 bg-indigo-500/10 text-white" : "border-white/10 text-white/40 hover:border-white/20 hover:text-white/60"}`}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">{error}</p>}
-
-          <button
-            onClick={() => { if (!ind.legalName.trim()) { setError("Legal name is required."); return; } setError(null); setIndStep(2); }}
-            className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm transition-colors">
-            Continue →
-          </button>
-        </div>
-      )}
-
-      {/* Step 2: Profile */}
-      {indStep === 2 && (
-        <div className="space-y-5">
-          <h2 className="text-lg font-bold text-white">Your profile</h2>
-
-          <div>
-            <Label hint="What you do, your style, your ministry">Description</Label>
-            <textarea className={`${inputCls} resize-none`} rows={3}
-              placeholder="Gospel musician and worship leader based in London…"
-              value={ind.description} onChange={(e) => setI("description", e.target.value)} />
-          </div>
-
-          <div>
-            <Label>Address</Label>
-            <input className={inputCls} placeholder="City, Country"
-              value={ind.address} onChange={(e) => setI("address", e.target.value)} />
-          </div>
-
-          {error && <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-2.5">{error}</p>}
-
-          <div className="flex gap-3 pt-2">
-            <button onClick={() => setIndStep(1)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-semibold text-sm hover:bg-white/5 transition-colors">
-              ← Back
-            </button>
-            <button
-              onClick={submitIndividual}
-              disabled={loading}
-              className="flex-1 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold text-sm transition-colors flex items-center justify-center gap-2">
-              {loading ? <><Spinner /> Submitting…</> : "Complete registration →"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return null;
 }
 
 function Spinner() {

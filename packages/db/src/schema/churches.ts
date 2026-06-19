@@ -59,6 +59,11 @@ export const churches = pgTable("churches", {
   stripeAccountId: text("stripe_account_id"),
   stripeConnectStatus: stripeConnectStatusEnum("stripe_connect_status"),
 
+  // Verification & Safety
+  isVerified: boolean("is_verified").notNull().default(false),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  verifiedBy: text("verified_by"),
+
   // Meta (Facebook + Instagram) social auto-posting
   fbPageId: text("fb_page_id"),
   fbPageName: text("fb_page_name"),
