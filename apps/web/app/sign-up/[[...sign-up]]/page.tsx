@@ -167,12 +167,25 @@ export default function SignUpPage() {
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-white">Create your attendee account</h1>
+          <h1 className="text-2xl font-bold text-white">
+            {redirectUrl === "/register" ? "Create your host account" : "Create your attendee account"}
+          </h1>
           <p className="text-white/40 text-sm mt-1">
-            RSVP for church events ·{" "}
-            <Link href="/register" className="text-indigo-400 hover:text-indigo-300 font-semibold underline">
-              Host events instead
-            </Link>
+            {redirectUrl === "/register" ? (
+              <>
+                Set up event pages and sell tickets ·{" "}
+                <Link href="/sign-up" className="text-indigo-400 hover:text-indigo-300 font-semibold underline">
+                  RSVP to events instead
+                </Link>
+              </>
+            ) : (
+              <>
+                RSVP for church events ·{" "}
+                <Link href="/sign-up?redirect_url=/register" className="text-indigo-400 hover:text-indigo-300 font-semibold underline">
+                  Host events instead
+                </Link>
+              </>
+            )}
           </p>
         </div>
 
@@ -270,7 +283,7 @@ export default function SignUpPage() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
               ) : (
-                "Create Account"
+                redirectUrl === "/register" ? "Create Host Account" : "Create Account"
               )}
             </button>
           </form>
