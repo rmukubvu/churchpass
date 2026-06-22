@@ -1,4 +1,3 @@
-import sgMail from "@sendgrid/mail";
 import {
   buildRsvpConfirmationEmail,
   type RsvpConfirmationData,
@@ -7,25 +6,28 @@ import {
 import { buildOtpEmail } from "./email-templates/otp-verification";
 import { generateQrDataUrl, checkInUrl } from "./qrcode";
 
-const apiKey = process.env.SENDGRID_API_KEY;
-const fromEmail = process.env.SENDGRID_FROM_EMAIL ?? "dotnotreply@churchpass.events";
+const apiKey = process.env.ZEPTOMAIL_TOKEN;
+const apiUrl = process.env.ZEPTOMAIL_API_URL ?? "https://api.zeptomail.com/v1.1/email";
+const fromEmail = process.env.ZEPTOMAIL_FROM_EMAIL ?? "noreply@churchpass.events";
 
-if (apiKey) {
-  sgMail.setApiKey(apiKey);
+interface ZeptoMailInlineImage {
+  content: string;
+  mime_type: string;
+  cid: string;
 }
 
 /**
  * Generate QR codes and attach them as CID inline images.
- * Returns enriched events + the attachment list for SendGrid.
+ * Returns enriched events + the inline_images list for ZeptoMail.
  */
-async function withQrAttachments(
+async function withQrInlineImages(
   events: RsvpConfirmationData["events"],
   tokens: (string | null)[]
 ): Promise<{
   events: RsvpEventSummary[];
-  attachments: NonNullable<sgMail.MailDataRequired["attachments"]>;
+  inlineImages: ZeptoMailInlineImage[];
 }> {
-  const attachments: NonNullable<sgMail.MailDataRequired["attachments"]> = [];
+  const inlineImages: ZeptoMailInlineImage[] = [];
   const enriched: RsvpEventSummary[] = [];
 
   for (let i = 0; i < events.length; i++) {
@@ -44,12 +46,10 @@ async function withQrAttachments(
       const base64 = dataUrl.replace(/^data:image\/png;base64,/, "");
       const cid = `qr_${i}_${token.slice(0, 8)}@churchpass`;
 
-      attachments.push({
+      inlineImages.push({
         content: base64,
-        type: "image/png",
-        filename: `qr-${i}.png`,
-        disposition: "inline",
-        contentId: cid,
+        mime_type: "image/png",
+        cid: cid,
       });
 
       enriched.push({ ...event, qrCid: cid, checkInUrl: url });
@@ -58,36 +58,64 @@ async function withQrAttachments(
     }
   }
 
-  return { events: enriched, attachments };
+  return { events: enriched, inlineImages };
 }
 
 export async function sendRsvpConfirmation(
   data: RsvpConfirmationData & { walletPassTokens?: (string | null)[] }
 ): Promise<void> {
   const tokens = data.walletPassTokens ?? data.events.map(() => null);
-  const { events: enrichedEvents, attachments } = await withQrAttachments(data.events, tokens);
+  const { events: enrichedEvents, inlineImages } = await withQrInlineImages(data.events, tokens);
 
   const enrichedData: RsvpConfirmationData = { ...data, events: enrichedEvents };
+  const { subject, html, text } = buildRsvpConfirmationEmail(enrichedData);
 
   if (!apiKey) {
-    const { subject, text } = buildRsvpConfirmationEmail(enrichedData);
-    console.log("[sendgrid] No API key — skipping email send");
-    console.log("[sendgrid] To:", data.email);
-    console.log("[sendgrid] Subject:", subject);
-    console.log("[sendgrid] Body preview:\n", text.slice(0, 400));
+    console.log("[zeptomail] No API token — skipping email send");
+    console.log("[zeptomail] To:", data.email);
+    console.log("[zeptomail] Subject:", subject);
+    console.log("[zeptomail] Body preview:\n", text.slice(0, 400));
     return;
   }
 
-  const { subject, html, text } = buildRsvpConfirmationEmail(enrichedData);
+  try {
+    const payload = {
+      from: {
+        address: fromEmail,
+        name: "Church Pass",
+      },
+      to: [
+        {
+          email_address: {
+            address: data.email,
+            name: data.firstName,
+          },
+        },
+      ],
+      subject,
+      htmlbody: html,
+      textbody: text,
+      ...(inlineImages.length > 0 && { inline_images: inlineImages }),
+    };
 
-  await sgMail.send({
-    to: data.email,
-    from: { email: fromEmail, name: "Church Pass" },
-    subject,
-    html,
-    text,
-    ...(attachments.length > 0 && { attachments }),
-  } as sgMail.MailDataRequired);
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("[zeptomail] Send failed:", res.status, errText);
+    } else {
+      console.log("[zeptomail] Email successfully sent to", data.email);
+    }
+  } catch (err) {
+    console.error("[zeptomail] Send failed due to network error:", err);
+  }
 }
 
 export async function sendOtpEmail(email: string, code: string): Promise<void> {
@@ -95,19 +123,48 @@ export async function sendOtpEmail(email: string, code: string): Promise<void> {
   const { subject, html, text } = buildOtpEmail({ email, code, appUrl });
 
   if (!apiKey) {
-    console.log("[sendgrid] No API key — skipping OTP email send");
-    console.log("[sendgrid] To:", email);
-    console.log("[sendgrid] Subject:", subject);
-    console.log("[sendgrid] Body preview:\n", text.slice(0, 400));
+    console.log("[zeptomail] No API token — skipping OTP email send");
+    console.log("[zeptomail] To:", email);
+    console.log("[zeptomail] Subject:", subject);
+    console.log("[zeptomail] Body preview:\n", text.slice(0, 400));
     return;
   }
 
-  await sgMail.send({
-    to: email,
-    from: { email: fromEmail, name: "Church Pass" },
-    subject,
-    html,
-    text,
-  });
-}
+  try {
+    const payload = {
+      from: {
+        address: fromEmail,
+        name: "Church Pass",
+      },
+      to: [
+        {
+          email_address: {
+            address: email,
+            name: email.split("@")[0] || "User",
+          },
+        },
+      ],
+      subject,
+      htmlbody: html,
+      textbody: text,
+    };
 
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: apiKey,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("[zeptomail] Send OTP failed:", res.status, errText);
+    } else {
+      console.log("[zeptomail] OTP Email successfully sent to", email);
+    }
+  } catch (err) {
+    console.error("[zeptomail] Send OTP failed due to network error:", err);
+  }
+}
