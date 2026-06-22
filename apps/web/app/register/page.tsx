@@ -38,11 +38,6 @@ export default async function RegisterPage() {
           <div className="rounded-2xl bg-[#111118] border border-white/8 p-7">
             <RegisterWizard />
           </div>
-
-          <p className="text-center text-xs text-white/20 mt-6">
-            Already registered?{" "}
-            <a href="/sign-in" className="text-indigo-400 hover:text-indigo-300 transition-colors">Sign in</a>
-          </p>
         </div>
       </main>
     </div>
