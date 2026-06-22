@@ -305,7 +305,7 @@ export function RegisterWizard() {
           <h2 className="text-xl font-bold text-white mb-2">Who are you registering as?</h2>
           <p className="text-sm text-white/40">Choose your account type to get started.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="space-y-3">
           {[
             {
               type: "org" as const,
@@ -329,15 +329,19 @@ export function RegisterWizard() {
             <button
               key={type}
               onClick={() => setAccountType(type)}
-              className="group text-left rounded-2xl border border-white/8 bg-white/2 hover:border-indigo-500/60 hover:bg-indigo-500/5 p-6 transition-all flex flex-col justify-between"
+              className="group text-left rounded-2xl border border-white/8 bg-white/2 hover:border-indigo-500/60 hover:bg-indigo-500/5 p-5 transition-all flex items-center gap-5 w-full"
             >
-              <div>
-                <div className="text-3xl mb-3">{icon}</div>
-                <p className="text-base font-bold text-white mb-1">{title}</p>
+              <div className="w-14 h-14 rounded-xl bg-white/5 group-hover:bg-indigo-500/10 flex items-center justify-center text-3xl flex-shrink-0 transition-colors">
+                {icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-white mb-0.5">{title}</p>
                 <p className="text-sm text-white/40 leading-relaxed">{desc}</p>
               </div>
-              <div className="mt-6 text-xs font-semibold text-indigo-400 group-hover:text-indigo-300 transition-colors">
-                Register as {title} →
+              <div className="text-indigo-400 group-hover:text-indigo-300 group-hover:translate-x-1.5 transition-all flex-shrink-0 pl-2">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
               </div>
             </button>
           ))}
